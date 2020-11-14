@@ -1,1 +1,1 @@
-# easyVk
+# vkEasy
