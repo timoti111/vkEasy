@@ -1,0 +1,1 @@
+#define EASY_VK_NAMESPACE vk::easy
