@@ -1,3 +1,7 @@
-[submodule "extras/glslang"]
-	path = extras/glslang
-	url = git@github.com:KhronosGroup/glslang.git
+[submodule "extras/SPIRV-Cross"]
+	path = extras/SPIRV-Cross
+	url = git@github.com:KhronosGroup/SPIRV-Cross.git
+
+[submodule "extras/Vulkan-Hpp"]
+	path = extras/Vulkan-Hpp
+	url = https://github.com/KhronosGroup/Vulkan-Hpp.git
