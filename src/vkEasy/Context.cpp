@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vkEasy/Context.h>
+
 using namespace VK_EASY_NAMESPACE;
 
 Context& Context::get()
@@ -12,7 +13,53 @@ void Context::initialize()
 {
     auto& context = Context::get();
     if (context.m_instance)
-        return;
+        context.error(Error::MultipleInitializations);
+
+    std::vector<vk::LayerProperties> layerProperties = context.m_context->enumerateInstanceLayerProperties();
+    std::vector<vk::ExtensionProperties> extensionProperties
+        = context.m_context->enumerateInstanceExtensionProperties();
+
+#ifndef NDEBUG
+    if (std::find_if(layerProperties.begin(), layerProperties.end(),
+            [](vk::LayerProperties const& lp) { return (strcmp("VK_LAYER_KHRONOS_validation", lp.layerName) == 0); })
+        != layerProperties.end()) {
+        context.m_layers.insert("VK_LAYER_KHRONOS_validation");
+    }
+    if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
+            [](vk::ExtensionProperties const& ep) {
+                return (strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, ep.extensionName) == 0);
+            })
+        != extensionProperties.end()) {
+        context.m_extensions.insert(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
+#endif
+
+    std::set<std::string> supportedExtensionSet;
+    std::transform(extensionProperties.begin(), extensionProperties.end(),
+        std::inserter(supportedExtensionSet, supportedExtensionSet.end()),
+        [](const vk::ExtensionProperties& ext) -> std::string { return std::string(ext.extensionName); });
+
+    std::vector<std::string> unsupportedExtensions(context.m_extensions.size());
+    auto it = std::set_difference(context.m_extensions.begin(), context.m_extensions.end(),
+        supportedExtensionSet.begin(), supportedExtensionSet.end(), unsupportedExtensions.begin());
+    unsupportedExtensions.resize(it - unsupportedExtensions.begin());
+
+    std::set<std::string> supportedLayerSet;
+    std::transform(layerProperties.begin(), layerProperties.end(),
+        std::inserter(supportedLayerSet, supportedLayerSet.end()),
+        [](const vk::LayerProperties& layer) -> std::string { return std::string(layer.layerName); });
+
+    std::vector<std::string> unsupportedLayers(context.m_layers.size());
+    it = std::set_difference(context.m_layers.begin(), context.m_layers.end(), supportedLayerSet.begin(),
+        supportedLayerSet.end(), unsupportedLayers.begin());
+    unsupportedLayers.resize(it - unsupportedLayers.begin());
+
+    std::for_each(unsupportedExtensions.begin(), unsupportedExtensions.end(),
+        [](const std::string& ext) { std::cout << "Unsupported instance extension: " << ext << std::endl; });
+    std::for_each(unsupportedLayers.begin(), unsupportedLayers.end(),
+        [](const std::string& ext) { std::cout << "Unsupported instance layer: " << ext << std::endl; });
+    if (!unsupportedExtensions.empty() || !unsupportedLayers.empty())
+        context.error(Error::RequirementsNotFulfilled);
 
     std::vector<char const*> extensions;
     std::transform(context.m_extensions.begin(), context.m_extensions.end(), std::back_inserter(extensions),
@@ -22,14 +69,31 @@ void Context::initialize()
     std::transform(context.m_layers.begin(), context.m_layers.end(), std::back_inserter(layers),
         [](const std::string& string) -> char const* { return string.c_str(); });
 
-    vk::InstanceCreateInfo info;
-    info.setPApplicationInfo(&context.m_applicationInfo)
+    context.m_instanceCreateInfo.setPApplicationInfo(&context.m_applicationInfo)
         .setPEnabledExtensionNames(extensions)
         .setPEnabledLayerNames(layers);
-    context.m_instance = std::make_unique<vk::raii::Instance>(*context.m_context, info);
 
-#ifndef NDEBUG
-    auto version = info.pApplicationInfo->apiVersion;
+    if (context.m_extensions.contains(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)) {
+        vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
+            | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
+            | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning);
+        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
+            | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
+
+        context.m_debugMessengerCreateInfo.setMessageSeverity(severityFlags)
+            .setMessageType(messageTypeFlags)
+            .setPfnUserCallback(debugUtilsMessengerCallback);
+
+        context.m_instanceCreateInfo.setPNext(&context.m_debugMessengerCreateInfo);
+    }
+
+    context.m_instance = std::make_unique<vk::raii::Instance>(*context.m_context, context.m_instanceCreateInfo);
+
+    if (context.m_extensions.contains(VK_EXT_DEBUG_UTILS_EXTENSION_NAME))
+        context.m_debugMessenger = std::make_unique<vk::raii::DebugUtilsMessengerEXT>(
+            *context.m_instance, context.m_debugMessengerCreateInfo);
+
+    auto version = context.m_instanceCreateInfo.pApplicationInfo->apiVersion;
     std::cout << "Vulkan instance initialised with: " << std::endl;
     std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
               << VK_VERSION_PATCH(version) << std::endl;
@@ -37,22 +101,10 @@ void Context::initialize()
         [](const std::string& ext) { std::cout << "Extension: " << ext << std::endl; });
     std::for_each(context.m_layers.begin(), context.m_layers.end(),
         [](const std::string& ext) { std::cout << "Layer: " << ext << std::endl; });
-
-    vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
-        | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning);
-    vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-        | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
-
-    vk::DebugUtilsMessengerCreateInfoEXT debugUtilsMessengerCreateInfo;
-    debugUtilsMessengerCreateInfo.setMessageSeverity(severityFlags)
-        .setMessageType(messageTypeFlags)
-        .setPfnUserCallback(debugUtilsMessengerCallback);
-    context.m_debugMessenger
-        = std::make_unique<vk::raii::DebugUtilsMessengerEXT>(*context.m_instance, debugUtilsMessengerCreateInfo);
-#endif
 }
 
 Context::Context()
+    : Errorable("Context")
 {
     m_context = std::make_unique<vk::raii::Context>();
     m_applicationInfo.setApiVersion(m_context->enumerateInstanceVersion())
@@ -60,30 +112,6 @@ Context::Context()
         .setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
         .setPApplicationName("vkEasy")
         .setPEngineName("vkEasy");
-
-#ifndef NDEBUG
-    std::vector<vk::LayerProperties> layerProperties = m_context->enumerateInstanceLayerProperties();
-    std::vector<vk::ExtensionProperties> extensionProperties = m_context->enumerateInstanceExtensionProperties();
-    if (std::find_if(layerProperties.begin(), layerProperties.end(),
-            [](vk::LayerProperties const& lp) { return (strcmp("VK_LAYER_KHRONOS_validation", lp.layerName) == 0); })
-        != layerProperties.end()) {
-        m_layers.insert("VK_LAYER_KHRONOS_validation");
-    }
-    if (std::find_if(layerProperties.begin(), layerProperties.end(),
-            [](vk::LayerProperties const& lp) {
-                return (strcmp("VK_LAYER_LUNARG_assistant_layer", lp.layerName) == 0);
-            })
-        != layerProperties.end()) {
-        m_layers.insert("VK_LAYER_LUNARG_assistant_layer");
-    }
-    if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
-            [](vk::ExtensionProperties const& ep) {
-                return (strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, ep.extensionName) == 0);
-            })
-        != extensionProperties.end()) {
-        m_extensions.insert(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
-#endif
 }
 
 std::set<std::string> Context::extensions() const
@@ -104,39 +132,38 @@ vk::ApplicationInfo Context::applicationInfo() const
 void Context::setApplicationInfo(const vk::ApplicationInfo& applicationInfo)
 {
     if (m_instance)
-        return;
+        error(Error::CreationInfoModifyAfterInitialization);
     m_applicationInfo = applicationInfo;
 }
 
 void Context::addExtension(const std::string& extension)
 {
     if (m_instance)
-        return;
+        error(Error::CreationInfoModifyAfterInitialization);
     m_extensions.insert(extension);
 }
 
 void Context::addExtensions(std::vector<std::string> extensions)
 {
     if (m_instance)
-        return;
+        error(Error::CreationInfoModifyAfterInitialization);
     std::copy(extensions.begin(), extensions.end(), std::inserter(m_extensions, m_extensions.end()));
 }
 
 void Context::addLayer(const std::string& layer)
 {
     if (m_instance)
-        return;
+        error(Error::CreationInfoModifyAfterInitialization);
     m_layers.insert(layer);
 }
 
 void Context::addLayers(std::vector<std::string> layers)
 {
     if (m_instance)
-        return;
+        error(Error::CreationInfoModifyAfterInitialization);
     std::copy(layers.begin(), layers.end(), std::inserter(m_layers, m_layers.end()));
 }
 
-#ifndef NDEBUG
 VkBool32 Context::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageTypes, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void*)
 {
@@ -183,4 +210,3 @@ VkBool32 Context::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBit
     }
     return VK_TRUE;
 }
-#endif

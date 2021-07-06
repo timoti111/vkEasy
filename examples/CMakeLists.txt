@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.16)
+
+FILE (GLOB examples ${CMAKE_CURRENT_SOURCE_DIR}/*)
+FOREACH( example ${examples} )
+  if( IS_DIRECTORY ${example} )
+    if( EXISTS ${example}/CMakeLists.txt )
+      string( REGEX REPLACE "^.*/([^/]*)$" "\\1" LINK_NAME ${example} )
+      add_subdirectory( ${LINK_NAME} )
+    endif()
+  endif()
+ENDFOREACH( example ${examples} )

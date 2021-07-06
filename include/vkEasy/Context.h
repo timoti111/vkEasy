@@ -1,9 +1,10 @@
 #pragma once
 #include <set>
+#include <vkEasy/Error.h>
 #include <vkEasy/global.h>
 
 namespace VK_EASY_NAMESPACE {
-class Context {
+class Context : public Errorable {
 public:
     static Context& get();
     static void initialize();
@@ -26,15 +27,14 @@ private:
     std::set<std::string> m_layers;
     vk::ApplicationInfo m_applicationInfo;
     vk::InstanceCreateInfo m_instanceCreateInfo;
+    vk::DebugUtilsMessengerCreateInfoEXT m_debugMessengerCreateInfo;
 
     std::unique_ptr<vk::raii::Context> m_context;
     std::unique_ptr<vk::raii::Instance> m_instance;
-#ifndef NDEBUG
     std::unique_ptr<vk::raii::DebugUtilsMessengerEXT> m_debugMessenger;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes,
         VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*);
-#endif
 };
 }
