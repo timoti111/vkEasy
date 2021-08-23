@@ -93,6 +93,7 @@ void Context::initialize()
         context.m_debugMessenger = std::make_unique<vk::raii::DebugUtilsMessengerEXT>(
             *context.m_instance, context.m_debugMessengerCreateInfo);
 
+#ifndef NDEBUG
     auto version = context.m_instanceCreateInfo.pApplicationInfo->apiVersion;
     std::cout << "Vulkan instance initialised with: " << std::endl;
     std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
@@ -101,6 +102,9 @@ void Context::initialize()
         [](const std::string& ext) { std::cout << "Extension: " << ext << std::endl; });
     std::for_each(context.m_layers.begin(), context.m_layers.end(),
         [](const std::string& ext) { std::cout << "Layer: " << ext << std::endl; });
+#endif
+
+    context.m_physicalDevices = std::make_unique<vk::raii::PhysicalDevices>(*context.m_instance);
 }
 
 Context::Context()

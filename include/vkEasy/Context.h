@@ -32,9 +32,12 @@ private:
     std::unique_ptr<vk::raii::Context> m_context;
     std::unique_ptr<vk::raii::Instance> m_instance;
     std::unique_ptr<vk::raii::DebugUtilsMessengerEXT> m_debugMessenger;
+    std::unique_ptr<vk::raii::PhysicalDevices> m_physicalDevices;
+    `
 
-    static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
-        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes,
-        VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*);
+        static VKAPI_ATTR VkBool32 VKAPI_CALL
+        debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+            VkDebugUtilsMessageTypeFlagsEXT messageTypes, VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData,
+            void*);
 };
-}
+} // namespace VK_EASY_NAMESPACE
