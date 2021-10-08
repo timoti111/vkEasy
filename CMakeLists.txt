@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Vulkan REQUIRED)
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extras/Vulkan-Hpp")
 include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extras/Vulkan-Hpp/Vulkan-Headers/include")
-include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extras/VMA")
+include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extras/VulkanMemoryAllocator/include")
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     add_definitions(-DNOMINMAX -DVK_USE_PLATFORM_WIN32_KHR)
@@ -19,15 +19,35 @@ else()
     message(FATAL_ERROR, "Vulkan-Hpp: unhandled platform for samples!")
 endif()
 
-file(GLOB_RECURSE VK_EASY_SOURCES
-    "src/*.hpp"
-    "src/*.h"
-    "src/*.cpp"
-    "src/*.c"
+set(VK_EASY_SOURCES
+    "src/vkEasy/nodes/ComputeNode.cpp"
+    "src/vkEasy/nodes/PipelineNode.cpp"
+    "src/vkEasy/nodes/ResourceReadNode.cpp"
+    "src/vkEasy/nodes/ResourceWriteNode.cpp"
+    "src/vkEasy/resources/Buffer.cpp"
+    "src/vkEasy/resources/Image.cpp"
+    "src/vkEasy/Context.cpp"
+    "src/vkEasy/Error.cpp"
+    "src/vkEasy/global.cpp"
+    "src/vkEasy/Graph.cpp"
+    "src/vkEasy/Node.cpp"
+    "src/vkEasy/Resource.cpp"
+    "src/vkEasy/ShaderStage.cpp"
 )
-file(GLOB_RECURSE VK_EASY_INCLUDES
-    "include/*.hpp"
-    "include/*.h"
+set(VK_EASY_INCLUDES
+    "include/vkEasy/nodes/ComputeNode.h"
+    "include/vkEasy/nodes/PipelineNode.h"
+    "include/vkEasy/nodes/ResourceReadNode.h"
+    "include/vkEasy/nodes/ResourceWriteNode.h"
+    "include/vkEasy/resources/Buffer.h"
+    "include/vkEasy/resources/Image.h"
+    "include/vkEasy/Context.h"
+    "include/vkEasy/Error.h"
+    "include/vkEasy/global.h"
+    "include/vkEasy/Graph.h"
+    "include/vkEasy/Node.h"
+    "include/vkEasy/Resource.h"
+    "include/vkEasy/ShaderStage.h"
 )
 
 set(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "add a postfix, usually d on windows")
@@ -46,7 +66,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYN
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /permissive-)
 else(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
+    # target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
 endif(MSVC)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)

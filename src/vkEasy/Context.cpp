@@ -214,3 +214,7 @@ VkBool32 Context::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBit
     }
     return VK_TRUE;
 }
+
+Graph* Context::createGraph(vk::raii::PhysicalDevice* device)
+{
+}

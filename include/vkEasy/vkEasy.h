@@ -1,6 +1,6 @@
 #pragma once
 
-// #include <vkEasy/Pass.h>
+// #include <vkEasy/Node.h>
 // #include <vkEasy/Resource.h>
 
 // #include <vkEasy/Context.h>
