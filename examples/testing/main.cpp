@@ -15,10 +15,10 @@ int main()
 {
     try {
         vk::easy::Context::initialize();
-        auto program = vk::easy::Context::get().createProgram();
-        auto buffer = program->createResource<vk::easy::Buffer>();
+        auto graph = vk::easy::Context::get().createGraph();
+        auto buffer = graph->createResource<vk::easy::Buffer>();
 
-        auto compute = program->createNode<vk::easy::ComputeNode>();
+        auto compute = graph->createNode<vk::easy::ComputeNode>();
         auto stage = compute->getShaderStage();
         SpecializationData specializationData;
         stage->setShaderFile("headless.comp.spv")
@@ -34,19 +34,20 @@ int main()
         uint32_t n = 0;
         std::generate(computeInput.begin(), computeInput.end(), [&n] { return n++; });
 
-        auto resourceWriter = program->createNode<vk::easy::ResourceWriteNode>();
+        auto resourceWriter = graph->createNode<vk::easy::ResourceWriteNode>();
         resourceWriter->onUpdate([&computeInput](auto& node) { node.setData(computeInput); });
 
-        auto resourceReader = program->createNode<vk::easy::ResourceReadNode>();
+        auto resourceReader = graph->createNode<vk::easy::ResourceReadNode>();
         resourceReader->onUpdate([](auto& node) { node.setDataToRead(0); });
         resourceReader->onDataReady([&computeOutput](const auto& data) { computeOutput = data; });
 
-        program->record();
-        resourceWriter->writesTo(*buffer);
-        compute->readsFrom(*buffer, 0);
-        compute->writesTo(*buffer, 0);
-        resourceReader->readsFrom(*buffer);
-        program->run();
+        graph->startBuilding();
+        resourceWriter->writesTo(buffer);
+        compute->readsFrom(buffer, 0);
+        compute->writesTo(buffer, 0);
+        resourceReader->readsFrom(buffer);
+        graph->stopBuilding();
+        graph->run();
 
         std::cout << "Compute input:" << std::endl;
         for (auto& v : computeInput) {

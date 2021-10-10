@@ -20,33 +20,35 @@ else()
 endif()
 
 set(VK_EASY_SOURCES
+    "src/vkEasy/nodes/base/Node.cpp"
+    "src/vkEasy/nodes/base/PipelineNode.cpp"
+    "src/vkEasy/nodes/base/ResourceOperationNode.cpp"
     "src/vkEasy/nodes/ComputeNode.cpp"
-    "src/vkEasy/nodes/PipelineNode.cpp"
     "src/vkEasy/nodes/ResourceReadNode.cpp"
     "src/vkEasy/nodes/ResourceWriteNode.cpp"
+    "src/vkEasy/resources/base/Resource.cpp"
     "src/vkEasy/resources/Buffer.cpp"
     "src/vkEasy/resources/Image.cpp"
     "src/vkEasy/Context.cpp"
     "src/vkEasy/Error.cpp"
     "src/vkEasy/global.cpp"
     "src/vkEasy/Graph.cpp"
-    "src/vkEasy/Node.cpp"
-    "src/vkEasy/Resource.cpp"
     "src/vkEasy/ShaderStage.cpp"
 )
 set(VK_EASY_INCLUDES
+    "include/vkEasy/nodes/base/Node.h"
+    "include/vkEasy/nodes/base/PipelineNode.h"
+    "include/vkEasy/nodes/base/ResourceOperationNode.h"
     "include/vkEasy/nodes/ComputeNode.h"
-    "include/vkEasy/nodes/PipelineNode.h"
     "include/vkEasy/nodes/ResourceReadNode.h"
     "include/vkEasy/nodes/ResourceWriteNode.h"
+    "include/vkEasy/resources/base/Resource.h"
     "include/vkEasy/resources/Buffer.h"
     "include/vkEasy/resources/Image.h"
     "include/vkEasy/Context.h"
     "include/vkEasy/Error.h"
     "include/vkEasy/global.h"
     "include/vkEasy/Graph.h"
-    "include/vkEasy/Node.h"
-    "include/vkEasy/Resource.h"
     "include/vkEasy/ShaderStage.h"
 )
 
@@ -66,7 +68,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYN
 if(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /permissive-)
 else(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
+    target_compile_options(${PROJECT_NAME} PRIVATE)
     # target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic -Werror)
 endif(MSVC)
 

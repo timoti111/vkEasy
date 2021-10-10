@@ -217,4 +217,7 @@ VkBool32 Context::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBit
 
 Graph* Context::createGraph(vk::raii::PhysicalDevice* device)
 {
+    m_graphs.push_back(std::unique_ptr<Graph>(new Graph()));
+    m_graphs.back()->setParent(this);
+    return m_graphs.back().get();
 }

@@ -1,13 +1,15 @@
 #pragma once
 #include <map>
 
+#include <vkEasy/Error.h>
 #include <vkEasy/global.h>
 
 namespace VK_EASY_NAMESPACE {
 class PipelineNode;
 
-class ShaderStage {
-    friend PipelineNode;
+class ShaderStage : public Errorable {
+    friend class PipelineNode;
+    friend class ComputeNode;
 
 public:
     explicit ShaderStage(const vk::ShaderStageFlagBits& stage, PipelineNode* parent);
