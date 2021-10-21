@@ -1,3 +1,4 @@
+#include <vkEasy/Device.h>
 #include <vkEasy/Graph.h>
 #include <vkEasy/nodes/ComputeNode.h>
 
@@ -21,7 +22,8 @@ void ComputeNode::setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, ui
 {
 }
 
-void ComputeNode::buildPipeline(vk::raii::Device* device)
+void ComputeNode::buildPipeline(vk::easy::Device* device)
 {
-    m_computePipelineCreateInfo.setLayout(**m_pipelineLayout).setStage(getShaderStage()->update(*device));
+    m_computePipelineCreateInfo.setLayout(**m_pipelineLayout)
+        .setStage(getShaderStage()->update(*device->getVkDevice()));
 }

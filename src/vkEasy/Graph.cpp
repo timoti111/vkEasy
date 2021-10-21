@@ -8,11 +8,6 @@ Graph::Graph()
 {
 }
 
-void Graph::setPhysicalDevice(vk::raii::PhysicalDevice* physicalDevice)
-{
-    m_physicalDevice = physicalDevice;
-}
-
 void Graph::startBuilding()
 {
     m_graph.clear();
@@ -22,7 +17,7 @@ void Graph::startBuilding()
 void Graph::stopBuilding()
 {
     m_building = false;
-    // TODO walk through graph, choose device etc
+    // TODO walk through graph and set features to device
 }
 
 void Graph::addToGraph(Node* node)
@@ -39,10 +34,10 @@ void Graph::run()
         return;
 
     for (auto& node : m_graph)
-        node->execute();
+        node->execute(m_parent);
 }
 
-void Graph::setParent(Context* context)
+void Graph::setParent(vk::easy::Device* device)
 {
-    m_parent = context;
+    m_parent = device;
 }

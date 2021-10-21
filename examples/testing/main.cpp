@@ -15,7 +15,8 @@ int main()
 {
     try {
         vk::easy::Context::initialize();
-        auto graph = vk::easy::Context::get().createGraph();
+        auto device = vk::easy::Context::get().createDevice();
+        auto graph = device->createGraph();
         auto buffer = graph->createResource<vk::easy::Buffer>();
 
         auto compute = graph->createNode<vk::easy::ComputeNode>();

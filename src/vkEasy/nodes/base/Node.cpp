@@ -1,3 +1,4 @@
+#include <vkEasy/Device.h>
 #include <vkEasy/Graph.h>
 #include <vkEasy/nodes/base/Node.h>
 
@@ -18,15 +19,20 @@ void Node::writesTo(Resource* resource, uint32_t binding)
     addToGraph();
 }
 
-void Node::execute()
+void Node::execute(Device* device)
 {
     if (m_updateFunction)
-        m_updateFunction();
+        m_updateFunction(device);
 }
 
 void Node::addToGraph()
 {
     m_parent->addToGraph(this);
+}
+
+Graph* Node::getParent()
+{
+    return m_parent;
 }
 
 void Node::setParent(Graph* parent)

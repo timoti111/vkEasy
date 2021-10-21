@@ -6,17 +6,16 @@
 #include <vkEasy/resources/base/Resource.h>
 
 namespace VK_EASY_NAMESPACE {
-class Context;
+class Device;
 
 class Graph : public Errorable {
-    friend class Context;
+    friend class Device;
     friend class Node;
 
 public:
     Graph(Graph const&) = delete;
     void operator=(Graph const&) = delete;
 
-    void setPhysicalDevice(vk::raii::PhysicalDevice* physicalDevice = nullptr);
     void startBuilding();
     void stopBuilding();
     void run();
@@ -38,17 +37,14 @@ public:
 
 private:
     Graph();
-    void setParent(Context* context);
+    void setParent(vk::easy::Device* device);
     void addToGraph(Node* node);
     bool m_building = false;
 
     std::vector<std::unique_ptr<Node>> m_nodes;
     std::vector<std::unique_ptr<Resource>> m_resources;
-
     std::vector<Node*> m_graph;
 
-    vk::raii::PhysicalDevice* m_physicalDevice = nullptr;
-    vk::raii::Device* m_device = nullptr;
-    Context* m_parent;
+    vk::easy::Device* m_parent;
 };
 } // namespace VK_EASY_NAMESPACE

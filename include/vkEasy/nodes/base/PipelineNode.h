@@ -14,7 +14,7 @@ public:
 protected:
     PipelineNode(const std::string& nodeName);
     void needsRebuild();
-    virtual void buildPipeline(vk::raii::Device* device) = 0;
+    virtual void buildPipeline(vk::easy::Device* device) = 0;
     ShaderStage& createShaderStage(const vk::ShaderStageFlagBits& stage);
 
     std::map<vk::ShaderStageFlagBits, ShaderStage> m_stages;

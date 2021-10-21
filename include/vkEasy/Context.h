@@ -1,8 +1,7 @@
 #pragma once
 #include <set>
-// #include <vkEasy/Device.h>
+#include <vkEasy/Device.h>
 #include <vkEasy/Error.h>
-#include <vkEasy/Graph.h>
 #include <vkEasy/global.h>
 
 namespace VK_EASY_NAMESPACE {
@@ -20,7 +19,8 @@ public:
     void addLayer(const std::string& layer);
     void addLayers(std::vector<std::string> layers);
 
-    Graph* createGraph(vk::raii::PhysicalDevice* device = nullptr);
+    const vk::raii::PhysicalDevices& getPhysicalDevices() const;
+    vk::easy::Device* createDevice(vk::raii::PhysicalDevice* device = nullptr);
 
     Context(Context const&) = delete;
     void operator=(Context const&) = delete;
@@ -37,8 +37,7 @@ private:
     std::unique_ptr<vk::raii::Instance> m_instance;
     std::unique_ptr<vk::raii::DebugUtilsMessengerEXT> m_debugMessenger;
     std::unique_ptr<vk::raii::PhysicalDevices> m_physicalDevices;
-    std::vector<std::shared_ptr<vk::raii::Device>> m_devices;
-    std::vector<std::unique_ptr<vk::easy::Graph>> m_graphs;
+    std::vector<std::unique_ptr<Device>> m_device;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes,

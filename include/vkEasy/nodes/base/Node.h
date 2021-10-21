@@ -9,9 +9,11 @@
 
 namespace VK_EASY_NAMESPACE {
 class Graph;
+class Device;
 
 class Node : public Errorable {
     friend class Graph;
+    friend class Device;
 
 public:
     Node(Node const&) = delete;
@@ -25,10 +27,11 @@ public:
 protected:
     Node(const std::string& nodeName);
     void addToGraph();
-    std::function<void()> m_updateFunction;
+    Graph* getParent();
+    std::function<void(Device*)> m_updateFunction;
 
 private:
-    void execute();
+    void execute(Device* device);
     void setParent(Graph* parent);
 
     std::set<std::string> m_neededExtensions;

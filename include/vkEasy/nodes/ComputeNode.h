@@ -16,7 +16,7 @@ public:
 
 protected:
     ComputeNode();
-    virtual void buildPipeline(vk::raii::Device* device) override;
+    virtual void buildPipeline(vk::easy::Device* device) override;
 
 private:
     vk::ComputePipelineCreateInfo m_computePipelineCreateInfo;

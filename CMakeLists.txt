@@ -30,6 +30,7 @@ set(VK_EASY_SOURCES
     "src/vkEasy/resources/Buffer.cpp"
     "src/vkEasy/resources/Image.cpp"
     "src/vkEasy/Context.cpp"
+    "src/vkEasy/Device.cpp"
     "src/vkEasy/Error.cpp"
     "src/vkEasy/global.cpp"
     "src/vkEasy/Graph.cpp"
@@ -46,10 +47,12 @@ set(VK_EASY_INCLUDES
     "include/vkEasy/resources/Buffer.h"
     "include/vkEasy/resources/Image.h"
     "include/vkEasy/Context.h"
+    "include/vkEasy/Device.h"
     "include/vkEasy/Error.h"
     "include/vkEasy/global.h"
     "include/vkEasy/Graph.h"
     "include/vkEasy/ShaderStage.h"
+    "include/vkEasy/Utils.h"
 )
 
 set(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "add a postfix, usually d on windows")
