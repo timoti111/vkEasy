@@ -215,6 +215,11 @@ VkBool32 Context::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBit
     return VK_TRUE;
 }
 
+vk::raii::PhysicalDevices& Context::getPhysicalDevices()
+{
+    return *m_physicalDevices;
+}
+
 Device* Context::createDevice(vk::raii::PhysicalDevice* device)
 {
     m_device.push_back(std::unique_ptr<Device>(new Device(device)));

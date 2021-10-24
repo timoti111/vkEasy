@@ -19,7 +19,7 @@ public:
     void addLayer(const std::string& layer);
     void addLayers(std::vector<std::string> layers);
 
-    const vk::raii::PhysicalDevices& getPhysicalDevices() const;
+    vk::raii::PhysicalDevices& getPhysicalDevices();
     vk::easy::Device* createDevice(vk::raii::PhysicalDevice* device = nullptr);
 
     Context(Context const&) = delete;
