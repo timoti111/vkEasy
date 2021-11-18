@@ -9,6 +9,8 @@ enum class Error {
     CreationInfoModifyAfterInitialization,
     RequirementsNotFulfilled,
     MultipleInitializations,
+    NotRecordingGraph,
+    RecordingGraph,
 };
 
 class Errorable {

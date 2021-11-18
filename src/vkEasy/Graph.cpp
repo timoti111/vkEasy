@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <vkEasy/Context.h>
 #include <vkEasy/Graph.h>
 
@@ -8,36 +9,52 @@ Graph::Graph()
 {
 }
 
-void Graph::startBuilding()
+void Graph::startRecording()
 {
-    m_graph.clear();
-    m_building = true;
+    m_nodeOrderGraph.clear();
+    m_resourceUsage.clear();
+    m_callGraph.clear();
+    m_recording = true;
 }
 
-void Graph::stopBuilding()
+void Graph::stopRecording()
 {
-    m_building = false;
-    // TODO walk through graph and set features to device
-}
-
-void Graph::addToGraph(Node* node)
-{
-    if (!m_building)
-        return;
-    if (std::find(m_graph.begin(), m_graph.end(), node) == m_graph.end())
-        m_graph.push_back(node);
+    m_recording = false;
+    auto resourceUsageCopy = m_resourceUsage;
+    for (auto& node : m_nodeOrderGraph) {
+        for (auto& resource : node->m_usedResources) {
+            if (resourceUsageCopy[resource].size() == m_resourceUsage[resource].size())
+                m_callGraph.push_back([=]() { resource->create(m_device); });
+        };
+        m_callGraph.push_back([=]() { node->execute(); });
+        for (auto& resource : node->m_usedResources) {
+            auto& nodes = resourceUsageCopy[resource];
+            nodes.erase(std::remove(nodes.begin(), nodes.end(), node), nodes.end());
+            if (resourceUsageCopy[resource].size() == 0)
+                m_callGraph.push_back([=]() { resource->destroy(m_device); });
+        };
+    }
+    m_device->initialize();
 }
 
 void Graph::run()
 {
-    if (m_building)
-        return;
+    if (m_recording)
+        error(Error::RecordingGraph);
 
-    for (auto& node : m_graph)
-        node->execute(m_parent);
+    for (auto& action : m_callGraph)
+        action();
+
+    m_device->sendCommandBuffers();
+    m_device->waitForFences();
+    m_device->resetCommandBuffers();
 }
 
-void Graph::setParent(vk::easy::Device* device)
+void Graph::setDevice(Device* device)
 {
-    m_parent = device;
+    if (m_device == device)
+        return;
+    m_device = device;
+    for (auto& node : m_nodes)
+        node->setGraph(this);
 }

@@ -14,7 +14,5 @@ public:
 
 protected:
     ResourceOperationNode(const std::string& nodeName);
-    using Node::readsFrom;
-    using Node::writesTo;
 };
 } // namespace VK_EASY_NAMESPACE

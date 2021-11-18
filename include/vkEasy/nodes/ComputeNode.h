@@ -13,6 +13,8 @@ public:
     ShaderStage* getShaderStage();
     void onUpdate(std::function<void(ComputeNode&)> update);
     void setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
+    void readsFrom(Resource* resource, size_t binging);
+    void writesTo(Resource* resource, size_t binging);
 
 protected:
     ComputeNode();

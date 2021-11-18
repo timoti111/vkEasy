@@ -16,8 +16,8 @@ public:
     Graph(Graph const&) = delete;
     void operator=(Graph const&) = delete;
 
-    void startBuilding();
-    void stopBuilding();
+    void startRecording();
+    void stopRecording();
     void run();
 
     template <class T>
@@ -37,14 +37,16 @@ public:
 
 private:
     Graph();
-    void setParent(vk::easy::Device* device);
-    void addToGraph(Node* node);
-    bool m_building = false;
+    void setDevice(Device* device);
+    bool m_recording = false;
 
     std::vector<std::unique_ptr<Node>> m_nodes;
     std::vector<std::unique_ptr<Resource>> m_resources;
-    std::vector<Node*> m_graph;
 
-    vk::easy::Device* m_parent;
+    std::vector<Node*> m_nodeOrderGraph;
+    std::vector<std::function<void()>> m_callGraph;
+    std::map<Resource*, std::vector<Node*>> m_resourceUsage;
+
+    Device* m_device;
 };
 } // namespace VK_EASY_NAMESPACE

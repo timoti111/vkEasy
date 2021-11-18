@@ -23,7 +23,9 @@ const char* Exception::what() const noexcept
 std::map<Error, std::string> Exception::m_errorTexts {
     { Error::CreationInfoModifyAfterInitialization, "Setting object info even though object is already initialized" },
     { Error::RequirementsNotFulfilled, "Specified requrements cannot be fulfilled" },
-    { Error::MultipleInitializations, "Trying to initialize multiple times" }
+    { Error::MultipleInitializations, "Trying to initialize multiple times" },
+    { Error::NotRecordingGraph, "record() called while recording graph recording is not started yet" },
+    { Error::NotRecordingGraph, "run() called while recording graph" }
 };
 
 Errorable::Errorable(const std::string& objectName)

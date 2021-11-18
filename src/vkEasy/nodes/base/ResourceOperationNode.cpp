@@ -9,10 +9,8 @@ ResourceOperationNode::ResourceOperationNode(const std::string& nodeName)
 
 void ResourceOperationNode::readsFrom(Resource* resource)
 {
-    Node::readsFrom(resource, 0);
 }
 
 void ResourceOperationNode::writesTo(Resource* resource)
 {
-    Node::writesTo(resource, 0);
 }

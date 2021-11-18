@@ -9,37 +9,51 @@ Node::Node(const std::string& nodeName)
 {
 }
 
-void Node::readsFrom(Resource* resource, uint32_t binding)
+void Node::uses(Resource* resource)
 {
-    addToGraph();
+    m_usedResources.emplace(resource);
 }
 
-void Node::writesTo(Resource* resource, uint32_t binding)
+void Node::operator()()
 {
-    addToGraph();
+    if (!m_graph->m_recording)
+        error(Error::NotRecordingGraph);
+    m_dependantNodes.clear();
+    if (!m_graph->m_nodeOrderGraph.empty()) {
+        m_dependantNodes.push_back(m_graph->m_nodeOrderGraph.back());
+        m_graph->m_nodeOrderGraph.back()->setNext(this);
+    }
+    m_graph->m_nodeOrderGraph.push_back(this);
+
+    for (auto& usedResource : m_usedResources)
+        m_graph->m_resourceUsage[usedResource].push_back(this);
 }
 
-void Node::execute(Device* device)
+void Node::execute()
 {
     if (m_updateFunction)
-        m_updateFunction(device);
+        m_updateFunction(m_device);
+    auto cmdBuffers = m_device->getCommandBuffers(5, vk::QueueFlagBits::eCompute);
 }
 
-void Node::addToGraph()
+Graph* Node::getGraph()
 {
-    m_parent->addToGraph(this);
+    return m_graph;
 }
 
-Graph* Node::getParent()
+void Node::setGraph(Graph* graph)
 {
-    return m_parent;
+    m_graph = graph;
+    m_device = graph->m_device;
 }
 
-void Node::setParent(Graph* parent)
+void Node::setNext(Node* next)
 {
-    m_parent = parent;
+    m_nextNode = next;
 }
 
-void Node::needsExtensions(const vk::ArrayProxyNoTemporaries<std::string>& extensions)
+void Node::needsExtensions(const std::initializer_list<std::string>& extensions)
 {
+    for (auto& extension : extensions)
+        m_neededExtensions.emplace(extension);
 }

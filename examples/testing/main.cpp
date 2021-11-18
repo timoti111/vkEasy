@@ -22,13 +22,16 @@ int main()
         auto compute = graph->createNode<vk::easy::ComputeNode>();
         auto stage = compute->getShaderStage();
         SpecializationData specializationData;
-        stage->setShaderFile("headless.comp.spv")
-            .defineConstant(0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT),
-                sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
+        stage->setShaderFile("headless.comp.spv");
+        stage->defineConstant(
+            0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT), sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
+        compute->setDispatchSize(1, 1, 1);
         compute->onUpdate([&specializationData](auto& node) {
             node.getShaderStage()->setConstantData(&specializationData, sizeof(SpecializationData));
-            node.setDispatchSize(BUFFER_ELEMENTS, 1, 1);
+            // node.setDispatchSize(BUFFER_ELEMENTS, 1, 1);
         });
+        compute->readsFrom(buffer, 0);
+        compute->writesTo(buffer, 0);
 
         std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
         std::vector<uint32_t> computeOutput(BUFFER_ELEMENTS);
@@ -37,17 +40,19 @@ int main()
 
         auto resourceWriter = graph->createNode<vk::easy::ResourceWriteNode>();
         resourceWriter->onUpdate([&computeInput](auto& node) { node.setData(computeInput); });
+        resourceWriter->writesTo(buffer);
 
         auto resourceReader = graph->createNode<vk::easy::ResourceReadNode>();
         resourceReader->onUpdate([](auto& node) { node.setDataToRead(0); });
         resourceReader->onDataReady([&computeOutput](const auto& data) { computeOutput = data; });
-
-        graph->startBuilding();
-        resourceWriter->writesTo(buffer);
-        compute->readsFrom(buffer, 0);
-        compute->writesTo(buffer, 0);
         resourceReader->readsFrom(buffer);
-        graph->stopBuilding();
+
+        graph->startRecording();
+        resourceWriter();
+        compute();
+        resourceReader();
+        graph->stopRecording();
+
         graph->run();
 
         std::cout << "Compute input:" << std::endl;
