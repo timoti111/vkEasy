@@ -26,6 +26,9 @@ void PipelineNode::build(Device* device)
     m_poolSizes.clear();
     m_setLayouts.clear();
     m_writeDescriptorSets.clear();
+    m_descriptorSetsToBind.clear();
+    m_setLayouts.clear();
+    m_setLayoutsVk.clear();
 
     std::map<vk::DescriptorType, size_t> poolSizes;
 
@@ -53,15 +56,12 @@ void PipelineNode::build(Device* device)
             std::make_unique<vk::raii::DescriptorSetLayout>(*device->getLogicalDevice(), descriptorLayout));
     }
 
-    std::vector<vk::DescriptorSetLayout> setLayouts;
     for (auto& setLayout : m_setLayouts)
-        setLayouts.push_back(**setLayout.get());
+        m_setLayoutsVk.push_back(**setLayout.get());
 
-    for (auto& [type, size] : poolSizes) {
-        if (size > 0) {
+    for (auto& [type, size] : poolSizes)
+        if (size > 0)
             m_poolSizes.push_back(vk::DescriptorPoolSize().setType(type).setDescriptorCount(size));
-        }
-    }
 
     vk::DescriptorPoolCreateInfo descriptorPoolInfo;
     descriptorPoolInfo.setPoolSizes(m_poolSizes)
@@ -69,22 +69,22 @@ void PipelineNode::build(Device* device)
         .setFlags(vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet);
     m_descriptorPool = std::make_unique<vk::raii::DescriptorPool>(*device->getLogicalDevice(), descriptorPoolInfo);
 
+    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
+    pipelineLayoutCreateInfo.setSetLayouts(m_setLayoutsVk);
+    m_pipelineLayout
+        = std::make_unique<vk::raii::PipelineLayout>(*device->getLogicalDevice(), pipelineLayoutCreateInfo);
+
     vk::DescriptorSetAllocateInfo allocInfo;
-    allocInfo.setDescriptorPool(**m_descriptorPool).setSetLayouts(setLayouts);
+    allocInfo.setDescriptorPool(**m_descriptorPool).setSetLayouts(m_setLayoutsVk);
     m_descriptorSets = std::make_unique<vk::raii::DescriptorSets>(*device->getLogicalDevice(), allocInfo);
 
     for (auto& descriptorSet : *m_descriptorSets)
         m_descriptorSetsToBind.push_back(*descriptorSet);
 
-    vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo;
-    pipelineLayoutCreateInfo.setSetLayouts(setLayouts);
-    m_pipelineLayout
-        = std::make_unique<vk::raii::PipelineLayout>(*device->getLogicalDevice(), pipelineLayoutCreateInfo);
-
     for (auto& [set, bindingDescriptor] : m_layout) {
         for (auto& [binding, descriptor] : bindingDescriptor) {
             vk::WriteDescriptorSet writeDescriptorSet;
-            writeDescriptorSet.setDstSet(*(m_descriptorSets->at(set)))
+            writeDescriptorSet.setDstSet(m_descriptorSetsToBind.at(set))
                 .setDstBinding(binding)
                 .setDescriptorType(descriptor.type)
                 .setDescriptorCount(descriptor.resources.size());
@@ -97,8 +97,7 @@ void PipelineNode::build(Device* device)
                     auto buffer = dynamic_cast<Buffer*>(resource);
                     auto vkBuffer = buffer->getVkBuffer();
                     bufferDescriptor.setBuffer(**vkBuffer);
-                    descriptor.bufferInfos.push_back(
-                        bufferDescriptor.setBuffer(**dynamic_cast<Buffer*>(resource)->getVkBuffer()));
+                    descriptor.bufferInfos.push_back(bufferDescriptor);
                 }
             }
 

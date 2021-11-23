@@ -33,13 +33,12 @@ void Graph::run()
     if (m_recording)
         error(Error::RecordingGraph);
 
-    for (auto& action : m_callGraph) {
+    for (auto& action : m_callGraph)
         action();
-        m_device->sendCommandBuffers();
-        m_device->waitForFences();
-        m_device->resetCommandBuffers();
-    }
 
+    m_device->sendCommandBuffers();
+    m_device->waitForFences();
+    m_device->resetCommandBuffers();
     m_device->waitForQueue();
 }
 

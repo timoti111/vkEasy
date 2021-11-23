@@ -21,11 +21,12 @@ int main()
 
         const size_t bufferSize = BUFFER_ELEMENTS * sizeof(uint32_t);
 
-        auto cpuBuffer = graph->createResource<vk::easy::StagingBuffer>();
         std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
         std::vector<uint32_t> computeOutput(BUFFER_ELEMENTS);
         uint32_t n = 0;
         std::generate(computeInput.begin(), computeInput.end(), [&n] { return n++; });
+
+        auto cpuBuffer = graph->createResource<vk::easy::StagingBuffer>();
         cpuBuffer->setData(computeInput);
 
         auto gpuBuffer = graph->createResource<vk::easy::StorageBuffer>();
@@ -60,15 +61,13 @@ int main()
         cpuBuffer->getData(computeOutput);
 
         std::cout << "Compute input:" << std::endl;
-        for (auto& v : computeInput) {
+        for (auto& v : computeInput)
             std::cout << v << '\t';
-        }
         std::cout << std::endl;
 
         std::cout << "Compute output:" << std::endl;
-        for (auto& v : computeOutput) {
+        for (auto& v : computeOutput)
             std::cout << v << '\t';
-        }
         std::cout << std::endl;
 
     } catch (vk::SystemError& err) {

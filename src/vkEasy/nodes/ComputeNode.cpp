@@ -17,7 +17,8 @@ ComputeNode::ComputeNode()
         if (computeBuffers.empty())
             return;
 
-        std::cout << "Executing: " << objectName() << std::endl;
+        std::cout << "Executing: " << objectName() << " " << m_dispatchSize[0] << " " << m_dispatchSize[1] << " "
+                  << m_dispatchSize[2] << std::endl;
         computeBuffers[0]->bindPipeline(vk::PipelineBindPoint::eCompute, **m_pipeline);
         computeBuffers[0]->bindDescriptorSets(
             vk::PipelineBindPoint::eCompute, **m_pipelineLayout, 0, m_descriptorSetsToBind, {});
@@ -44,7 +45,7 @@ void ComputeNode::buildPipeline(vk::easy::Device* device)
 {
     vk::PipelineCacheCreateInfo pipelineCacheCreateInfo;
     m_pipelineCache = std::make_unique<vk::raii::PipelineCache>(*device->getLogicalDevice(), pipelineCacheCreateInfo);
-    m_shaderStage->update(*device->getLogicalDevice());
+    m_shaderStage->update(device);
     m_computePipelineCreateInfo.setLayout(**m_pipelineLayout)
         .setStage(*m_shaderStage->getPipelineShaderStageCreateInfo());
     m_pipeline = std::make_unique<vk::raii::Pipeline>(

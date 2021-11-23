@@ -307,14 +307,15 @@ VulkanExample::VulkanExample()
 
         // Fence for compute CB sync
         vk::FenceCreateInfo fenceCreateInfo;
-        fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
+        // fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
         fence = std::make_unique<vk::raii::Fence>(*device, fenceCreateInfo);
 
         // Submit compute work
         device->resetFences(**fence);
-        const vk::PipelineStageFlags waitStageMask = vk::PipelineStageFlagBits::eTransfer;
+        // const vk::PipelineStageFlags waitStageMask = vk::PipelineStageFlagBits::eTransfer;
         vk::SubmitInfo computeSubmitInfo;
-        computeSubmitInfo.setWaitDstStageMask(waitStageMask).setCommandBuffers(**commandBuffer).setWaitSemaphores({});
+        computeSubmitInfo.setCommandBuffers(**commandBuffer);
+        // computeSubmitInfo.setWaitDstStageMask(waitStageMask).setCommandBuffers(**commandBuffer).setWaitSemaphores({});
         queue->submit(computeSubmitInfo, **fence);
         auto result = device->waitForFences(**fence, VK_TRUE, UINT64_MAX);
 

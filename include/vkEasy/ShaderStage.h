@@ -6,6 +6,7 @@
 
 namespace VK_EASY_NAMESPACE {
 class PipelineNode;
+class Device;
 
 class ShaderStage : public Errorable {
     friend class PipelineNode;
@@ -22,7 +23,7 @@ public:
 
 private:
     std::vector<char> loadShader(const std::string& fileName);
-    void update(vk::raii::Device& device);
+    void update(Device* device);
     vk::PipelineShaderStageCreateInfo* getPipelineShaderStageCreateInfo();
 
     std::unique_ptr<vk::raii::ShaderModule> m_shaderModule;

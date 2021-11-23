@@ -13,7 +13,7 @@ void StagingBuffer::setData(const std::vector<uint32_t>& data)
 {
     m_updateData = true;
     m_data = data;
-    setSize(data.size() * sizeof(uint32_t));
+    setSize(m_data.size() * sizeof(uint32_t));
 }
 
 void StagingBuffer::update()

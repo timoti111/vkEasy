@@ -15,27 +15,16 @@ BufferCopyNode::BufferCopyNode()
         if (transferBuffers.empty())
             return;
 
-        if (m_src->isHostMemory()) {
-            // addBufferBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eComputeShader,
-            //     **m_dst->getVkBuffer(), vk::AccessFlagBits::eHostWrite, vk::AccessFlagBits::eShaderRead);
+        if (m_src->isHostMemory())
             addExecutionBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer);
-        }
-        // if (m_dst->isHostMemory()) {
-        //     addBufferBarrier(vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer,
-        //         **m_src->getVkBuffer(), vk::AccessFlagBits::eShaderWrite, vk::AccessFlagBits::eTransferRead);
-        //     // addBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost);
-        // }
 
         std::cout << "Executing: " << objectName() << std::endl;
         if (m_copyRegion.size == VK_WHOLE_SIZE)
             m_copyRegion.setSize(m_src->getSize());
-        transferBuffers[0]->copyBuffer(**m_src->getVkBuffer(), **m_src->getVkBuffer(), m_copyRegion);
+        transferBuffers[0]->copyBuffer(**m_src->getVkBuffer(), **m_dst->getVkBuffer(), m_copyRegion);
 
-        if (m_dst->isHostMemory()) {
-            // addBufferBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost,
-            //     **m_dst->getVkBuffer(), vk::AccessFlagBits::eTransferWrite, vk::AccessFlagBits::eHostRead);
+        if (m_dst->isHostMemory())
             addExecutionBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost);
-        }
     };
 }
 

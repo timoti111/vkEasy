@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <vkEasy/Device.h>
 #include <vkEasy/ShaderStage.h>
 #include <vkEasy/nodes/base/PipelineNode.h>
 
@@ -92,17 +93,19 @@ std::vector<char> ShaderStage::loadShader(const std::string& fileName)
     }
 }
 
-void ShaderStage::update(vk::raii::Device& device)
+void ShaderStage::update(Device* device)
 {
     if (m_shaderModuleChanged) {
-        m_shaderModule = std::make_unique<vk::raii::ShaderModule>(device, m_moduleCreateInfo);
+        m_shaderModule = std::make_unique<vk::raii::ShaderModule>(*device->getLogicalDevice(), m_moduleCreateInfo);
         m_shaderStageCreateInfo.setModule(**m_shaderModule);
+        m_shaderModuleChanged = false;
     }
     if (m_entriesChanged) {
         m_preparedSpecializationMapEntries.clear();
         for (const auto& [key, value] : m_specializationMapEntries)
             m_preparedSpecializationMapEntries.push_back(value);
         m_specializationInfo.setMapEntries(m_preparedSpecializationMapEntries);
+        m_entriesChanged = false;
     }
 }
 

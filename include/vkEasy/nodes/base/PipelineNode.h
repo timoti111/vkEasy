@@ -26,6 +26,7 @@ protected:
     std::vector<std::unique_ptr<vk::raii::DescriptorSetLayout>> m_setLayouts;
     std::unique_ptr<vk::raii::DescriptorSets> m_descriptorSets;
     std::vector<vk::DescriptorSet> m_descriptorSetsToBind;
+    std::vector<vk::DescriptorSetLayout> m_setLayoutsVk;
     std::unique_ptr<vk::raii::PipelineLayout> m_pipelineLayout;
 
     std::function<void()> m_onUpdateFunction;
