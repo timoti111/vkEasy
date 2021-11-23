@@ -116,12 +116,10 @@ void PipelineNode::uses(std::vector<Resource*> resources, size_t binding, size_t
 {
     m_pipelineRebuild = true;
     PipelineNode::Descriptor descriptor;
-    vk::DescriptorType type;
     for (auto& resource : resources) {
         Node::uses(resource);
-        type = resource->getDescriptorType();
+        descriptor.type = resource->getDescriptorType();
     }
-    descriptor.type = type;
     descriptor.resources = resources;
     descriptor.shaderStageFlags |= flag;
     m_layout[set][binding] = std::move(descriptor);

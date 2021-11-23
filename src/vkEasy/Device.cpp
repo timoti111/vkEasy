@@ -1,4 +1,5 @@
 #include <iostream>
+#include <limits>
 #include <vkEasy/Context.h>
 #include <vkEasy/Device.h>
 
@@ -7,6 +8,7 @@ using namespace VK_EASY_NAMESPACE;
 Device::Device(vk::raii::PhysicalDevice* device)
     : Errorable("Device")
 {
+    m_physicalDevice = device;
 }
 
 Graph* Device::createGraph()
@@ -30,13 +32,13 @@ void Device::findPhysicalDevice()
 {
     // TODO ALL
     m_needsGraphicsQueue = false;
-    m_graphicsQueueIndex = -1;
+    m_graphicsQueueIndex = std::numeric_limits<size_t>::max();
     m_needsComputeQueue = true; // TODO
-    m_computeQueueIndex = -1;
+    m_computeQueueIndex = std::numeric_limits<size_t>::max();
     m_needsTransferQueue = true; // TODO
-    m_transferQueueIndex = -1;
+    m_transferQueueIndex = std::numeric_limits<size_t>::max();
     m_needsPresentQueue = false;
-    m_presentQueueIndex = -1;
+    m_presentQueueIndex = std::numeric_limits<size_t>::max();
     // m_surface.reset();
     m_requiredExtensionsVkCompatible.clear();
     m_requiredExtensions.clear();
@@ -71,26 +73,26 @@ void Device::initialize()
     int queueIndex = 0;
     for (auto& queueFamilyProperty : queueFamilyProperties) {
         bool useQueue = false;
-        if (m_graphicsQueueIndex == -1 && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eGraphics
-            && m_needsGraphicsQueue) {
+        if (m_graphicsQueueIndex == std::numeric_limits<size_t>::max()
+            && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eGraphics && m_needsGraphicsQueue) {
             m_graphicsQueueIndex = queueIndex;
             m_needsGraphicsQueue = false;
             useQueue = true;
         }
-        if (m_computeQueueIndex == -1 && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eCompute
-            && m_needsComputeQueue) {
+        if (m_computeQueueIndex == std::numeric_limits<size_t>::max()
+            && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eCompute && m_needsComputeQueue) {
             m_computeQueueIndex = queueIndex;
             m_needsComputeQueue = false;
             useQueue = true;
         }
-        if (m_transferQueueIndex == -1 && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eTransfer
-            && m_needsTransferQueue) {
+        if (m_transferQueueIndex == std::numeric_limits<size_t>::max()
+            && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eTransfer && m_needsTransferQueue) {
             m_transferQueueIndex = queueIndex;
             m_needsTransferQueue = false;
             useQueue = true;
         }
-        // if (m_presentQueueIndex == -1 && m_physicalDevice->getSurfaceSupportKHR(queueIndex, *m_surface) &&
-        // m_needsPresentQueue) {
+        // if (m_presentQueueIndex == std::numeric_limits<size_t>::max() &&
+        // m_physicalDevice->getSurfaceSupportKHR(queueIndex, *m_surface) && m_needsPresentQueue) {
         //     m_presentQueueIndex = queueIndex;
         //     useQueue = true;
         // }
@@ -120,8 +122,10 @@ void Device::initialize()
         m_queues.at(queue.queueFamilyIndex) = std::move(queueData);
     }
 
-    if (m_needsGraphicsQueue && m_graphicsQueueIndex == -1 || m_needsComputeQueue && m_computeQueueIndex == -1
-        || m_needsTransferQueue && m_transferQueueIndex == -1 || m_needsPresentQueue && m_presentQueueIndex == -1)
+    if ((m_needsGraphicsQueue && m_graphicsQueueIndex == std::numeric_limits<size_t>::max())
+        || (m_needsComputeQueue && m_computeQueueIndex == std::numeric_limits<size_t>::max())
+        || (m_needsTransferQueue && m_transferQueueIndex == std::numeric_limits<size_t>::max())
+        || (m_needsPresentQueue && m_presentQueueIndex == std::numeric_limits<size_t>::max()))
         error(Error::RequirementsNotFulfilled);
 }
 

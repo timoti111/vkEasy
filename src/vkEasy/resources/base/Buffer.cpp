@@ -45,18 +45,15 @@ void Buffer::create()
     vk::MemoryAllocateInfo memAlloc;
     memAlloc.setAllocationSize(memReqs.size);
 
-    bool memTypeFound = false;
     for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++) {
         if ((memReqs.memoryTypeBits & 1) == 1) {
             if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & m_memoryPropertyFlags)
                 == m_memoryPropertyFlags) {
                 memAlloc.memoryTypeIndex = i;
-                memTypeFound = true;
             }
         }
         memReqs.memoryTypeBits >>= 1;
     }
-    assert(memTypeFound);
     m_memory = std::make_unique<vk::raii::DeviceMemory>(*m_device->getLogicalDevice(), memAlloc);
 
     m_buffer->bindMemory(**m_memory, 0);
