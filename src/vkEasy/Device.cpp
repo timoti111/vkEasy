@@ -49,6 +49,8 @@ void Device::findPhysicalDevice()
     if (!m_physicalDevice)
         m_physicalDevice = &vk::easy::Context::get().getPhysicalDevices()[0];
 
+    auto deviceProperties = m_physicalDevice->getProperties();
+    std::cout << "GPU: " << deviceProperties.deviceName.data() << std::endl;
     // std::transform(m_requiredExtensions.begin(), m_requiredExtensions.end(),
     //     std::back_inserter(m_requiredExtensionsVkCompatible),
     //     [](const std::string& string) -> char const* { return string.c_str(); });
