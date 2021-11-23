@@ -61,12 +61,12 @@ ShaderStage& ShaderStage::setEntryPoint(const std::string& entryPoint)
     return *this;
 }
 
-ShaderStage& ShaderStage::setShaderData(const std::vector<char>& data)
+ShaderStage& ShaderStage::setShaderData(const std::vector<uint32_t>& data)
 {
     m_parent->needsRebuild();
     m_shaderFileName = "";
     m_shaderData = data;
-    m_moduleCreateInfo.setCodeSize(m_shaderData.size()).setPCode((uint32_t*)m_shaderData.data());
+    m_moduleCreateInfo.setCodeSize(m_shaderData.size() * sizeof(uint32_t)).setPCode(m_shaderData.data());
     m_shaderModuleChanged = true;
     return *this;
 }
@@ -78,24 +78,54 @@ ShaderStage& ShaderStage::setShaderFile(const std::string& file, bool watchForCh
     return setShaderData(loadShader(file));
 }
 
-std::vector<char> ShaderStage::loadShader(const std::string& fileName)
+std::vector<uint32_t> ShaderStage::compileFile(
+    const std::string& sourceName, shaderc_shader_kind kind, const std::string& source, bool optimize)
 {
-    // TODO determine if SPIR-V or GLSL
-    std::ifstream is(fileName, std::ios::binary | std::ios::in | std::ios::ate);
+    shaderc::Compiler compiler;
+    shaderc::CompileOptions options;
+
+    if (optimize)
+        options.SetOptimizationLevel(shaderc_optimization_level_size);
+
+    shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, kind, sourceName.c_str(), options);
+
+    if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
+        std::cerr << module.GetErrorMessage();
+        return std::vector<uint32_t>();
+    }
+
+    return { module.cbegin(), module.cend() };
+}
+
+std::vector<uint32_t> ShaderStage::loadShader(const std::string& fileName)
+{
+    bool isSPIRV = fileName.find(".spv") != std::string::npos;
+    std::ios_base::openmode openMode = std::ios::in | std::ios::ate;
+    if (isSPIRV)
+        openMode |= std::ios::binary;
+    std::vector<uint32_t> shaderCode;
+
+    std::ifstream is(fileName, openMode);
 
     if (is.is_open()) {
         size_t size = is.tellg();
         is.seekg(0, std::ios::beg);
-        std::vector<char> shaderCode(size);
-        is.read(shaderCode.data(), size);
+        if (isSPIRV) {
+            shaderCode.resize(size / sizeof(uint32_t));
+            is.read(reinterpret_cast<char*>(shaderCode.data()), size);
+        } else {
+            std::string shaderText;
+            shaderText.resize(size);
+            is.read(shaderText.data(), size);
+            shaderCode = compileFile("shader_src", toShaderKind(m_shaderStageCreateInfo.stage), shaderText);
+        }
         is.close();
         assert(size > 0);
-        return shaderCode;
     } else {
         std::cerr << "Error: Could not open shader file \"" << fileName << "\""
                   << "\n";
-        return std::vector<char>();
     }
+    return shaderCode;
 }
 
 void ShaderStage::update(Device* device)
@@ -117,4 +147,36 @@ void ShaderStage::update(Device* device)
 vk::PipelineShaderStageCreateInfo* ShaderStage::getPipelineShaderStageCreateInfo()
 {
     return &m_shaderStageCreateInfo;
+}
+
+shaderc_shader_kind ShaderStage::toShaderKind(vk::ShaderStageFlagBits flag)
+{
+    switch (flag) {
+    case vk::ShaderStageFlagBits::eAnyHitKHR:
+        return shaderc_shader_kind::shaderc_glsl_anyhit_shader;
+    case vk::ShaderStageFlagBits::eCallableKHR:
+        return shaderc_shader_kind::shaderc_glsl_callable_shader;
+    case vk::ShaderStageFlagBits::eClosestHitKHR:
+        return shaderc_shader_kind::shaderc_glsl_closesthit_shader;
+    case vk::ShaderStageFlagBits::eCompute:
+        return shaderc_shader_kind::shaderc_glsl_compute_shader;
+    case vk::ShaderStageFlagBits::eFragment:
+        return shaderc_shader_kind::shaderc_glsl_fragment_shader;
+    case vk::ShaderStageFlagBits::eGeometry:
+        return shaderc_shader_kind::shaderc_glsl_geometry_shader;
+    case vk::ShaderStageFlagBits::eIntersectionKHR:
+        return shaderc_shader_kind::shaderc_glsl_intersection_shader;
+    case vk::ShaderStageFlagBits::eMissKHR:
+        return shaderc_shader_kind::shaderc_glsl_miss_shader;
+    case vk::ShaderStageFlagBits::eRaygenKHR:
+        return shaderc_shader_kind::shaderc_glsl_raygen_shader;
+    case vk::ShaderStageFlagBits::eTessellationControl:
+        return shaderc_shader_kind::shaderc_glsl_tess_control_shader;
+    case vk::ShaderStageFlagBits::eTessellationEvaluation:
+        return shaderc_shader_kind::shaderc_glsl_tess_evaluation_shader;
+    case vk::ShaderStageFlagBits::eVertex:
+        return shaderc_shader_kind::shaderc_glsl_vertex_shader;
+    default:
+        return shaderc_shader_kind::shaderc_glsl_infer_from_source;
+    }
 }

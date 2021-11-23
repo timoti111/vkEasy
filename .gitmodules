@@ -10,3 +10,9 @@
 [submodule "extras/shaderc"]
 	path = extras/shaderc
 	url = git@github.com:google/shaderc.git
+[submodule "extras/SPIRV-Tools"]
+	path = extras/SPIRV-Tools
+	url = git@github.com:KhronosGroup/SPIRV-Tools.git
+[submodule "extras/SPIRV-Headers"]
+	path = extras/SPIRV-Headers
+	url = git@github.com:KhronosGroup/SPIRV-Headers.git

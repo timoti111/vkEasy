@@ -39,7 +39,7 @@ int main()
         auto compute = graph->createNode<vk::easy::ComputeNode>();
         auto stage = compute->getShaderStage();
         SpecializationData specializationData;
-        stage->setShaderFile("headless.comp.spv");
+        stage->setShaderFile("headless.comp");
         stage->defineConstant(
             0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT), sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
         stage->setConstantData(&specializationData, sizeof(SpecializationData), true);
