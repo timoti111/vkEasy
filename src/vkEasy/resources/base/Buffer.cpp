@@ -35,18 +35,16 @@ void Buffer::create()
 {
     std::cout << "Creating buffer as: " << vk::to_string(m_bufferUsageFlags) << ""
               << vk::to_string(m_memoryPropertyFlags) << std::endl;
-    // Create the buffer handle
+
     vk::BufferCreateInfo bufferCreateInfo;
     bufferCreateInfo.setUsage(m_bufferUsageFlags).setSize(m_size).setSharingMode(vk::SharingMode::eExclusive);
     m_buffer = std::make_unique<vk::raii::Buffer>(*m_device->getLogicalDevice(), bufferCreateInfo);
 
-    // Create the memory backing up the buffer handle
     auto deviceMemoryProperties = m_device->getPhysicalDevice()->getMemoryProperties();
     auto memReqs = m_buffer->getMemoryRequirements();
     vk::MemoryAllocateInfo memAlloc;
     memAlloc.setAllocationSize(memReqs.size);
 
-    // Find a memory type index that fits the properties of the buffer
     bool memTypeFound = false;
     for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++) {
         if ((memReqs.memoryTypeBits & 1) == 1) {

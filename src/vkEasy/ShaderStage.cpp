@@ -16,6 +16,11 @@ ShaderStage::ShaderStage(const vk::ShaderStageFlagBits& stage, PipelineNode* par
     m_shaderStageCreateInfo.setPSpecializationInfo(&m_specializationInfo);
 }
 
+void ShaderStage::uses(std::vector<Resource*> resources, size_t binding, size_t set)
+{
+    m_parent->uses(std::move(resources), binding, set, m_shaderStageCreateInfo.stage);
+}
+
 ShaderStage& ShaderStage::defineConstant(uint32_t id, uint32_t offset, size_t size)
 {
     m_parent->needsRebuild();

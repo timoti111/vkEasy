@@ -43,8 +43,8 @@ int main()
         stage->defineConstant(
             0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT), sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
         stage->setConstantData(&specializationData, sizeof(SpecializationData), true);
+        stage->uses({ gpuBuffer }, 0, 0);
         compute->setDispatchSize(BUFFER_ELEMENTS, 1, 1);
-        compute->uses({ gpuBuffer }, 0, 0);
 
         auto gpuToCpu = graph->createNode<vk::easy::BufferCopyNode>();
         gpuToCpu->setSrcBuffer(gpuBuffer);

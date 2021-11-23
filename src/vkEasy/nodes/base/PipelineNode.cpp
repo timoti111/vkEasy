@@ -43,7 +43,7 @@ void PipelineNode::build(Device* device)
                     auto& descriptor = m_layout[set][binding];
                     layoutBinding.setDescriptorType(descriptor.type)
                         .setDescriptorCount(descriptor.resources.size())
-                        .setStageFlags(vk::ShaderStageFlagBits::eCompute);
+                        .setStageFlags(descriptor.shaderStageFlags);
                     if (poolSizes.find(descriptor.type) == poolSizes.end())
                         poolSizes[descriptor.type] = 0;
                     poolSizes[descriptor.type] += descriptor.resources.size();
@@ -112,7 +112,7 @@ void PipelineNode::build(Device* device)
     m_pipelineRebuild = false;
 }
 
-void PipelineNode::uses(std::vector<Resource*> resources, size_t binding, size_t set)
+void PipelineNode::uses(std::vector<Resource*> resources, size_t binding, size_t set, vk::ShaderStageFlagBits flag)
 {
     m_pipelineRebuild = true;
     PipelineNode::Descriptor descriptor;
@@ -123,12 +123,13 @@ void PipelineNode::uses(std::vector<Resource*> resources, size_t binding, size_t
     }
     descriptor.type = type;
     descriptor.resources = resources;
+    descriptor.shaderStageFlags |= flag;
     m_layout[set][binding] = std::move(descriptor);
 }
 
 ShaderStage* PipelineNode::createShaderStage(const vk::ShaderStageFlagBits& stage)
 {
-    m_stages[stage] = std::make_unique<ShaderStage>(stage, this);
+    m_stages[stage] = std::unique_ptr<ShaderStage>(new ShaderStage(stage, this));
     return m_stages[stage].get();
 }
 

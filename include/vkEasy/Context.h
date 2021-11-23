@@ -7,6 +7,9 @@
 namespace VK_EASY_NAMESPACE {
 class Context : public Errorable {
 public:
+    Context(Context const&) = delete;
+    void operator=(Context const&) = delete;
+
     static Context& get();
     static void initialize();
 
@@ -21,9 +24,6 @@ public:
 
     vk::raii::PhysicalDevices& getPhysicalDevices();
     vk::easy::Device* createDevice(vk::raii::PhysicalDevice* device = nullptr);
-
-    Context(Context const&) = delete;
-    void operator=(Context const&) = delete;
 
 private:
     Context();

@@ -22,9 +22,8 @@ void Graph::stopRecording()
 {
     m_recording = false;
     auto resourceUsageCopy = m_resourceUsage;
-    for (auto& node : m_nodeOrderGraph) {
+    for (auto& node : m_nodeOrderGraph)
         m_callGraph.push_back([=]() { node->execute(); });
-    }
     m_device->initialize();
 }
 
@@ -39,7 +38,6 @@ void Graph::run()
     m_device->sendCommandBuffers();
     m_device->waitForFences();
     m_device->resetCommandBuffers();
-    m_device->waitForQueue();
 }
 
 void Graph::setDevice(Device* device)

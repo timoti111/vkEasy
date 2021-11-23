@@ -175,25 +175,7 @@ void Device::waitForQueue()
 
 std::vector<vk::raii::CommandBuffer*> Device::QueueData::getCommandBuffers(size_t count, vk::raii::Device* device)
 {
-    // if (count + usedCommandBuffers > allocatedCommandBuffers.size()) {
-    //     vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
-    //     cmdBufAllocateInfo.setCommandPool(**commandPool)
-    //         .setLevel(vk::CommandBufferLevel::ePrimary)
-    //         .setCommandBufferCount(count);
-    //     commandBuffers.push_back(std::make_unique<vk::raii::CommandBuffers>(*device, cmdBufAllocateInfo));
-    //     for (size_t i = 0; i < commandBuffers.back()->size(); i++)
-    //         allocatedCommandBuffers.push_back(&commandBuffers.back()->at(i));
-    // }
-    // std::vector<vk::raii::CommandBuffer*> ret;
-    // ret.insert(ret.end(), allocatedCommandBuffers.begin() + usedCommandBuffers, allocatedCommandBuffers.end());
-    // vk::CommandBufferBeginInfo beginInfo;
-    // beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-    // for (auto& commandBuffer : ret)
-    //     commandBuffer->begin(beginInfo);
-    // usedCommandBuffers += count;
-    // return ret;
-
-    if (count > allocatedCommandBuffers.size()) {
+    if (count + usedCommandBuffers > allocatedCommandBuffers.size()) {
         vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
         cmdBufAllocateInfo.setCommandPool(**commandPool)
             .setLevel(vk::CommandBufferLevel::ePrimary)
@@ -202,15 +184,13 @@ std::vector<vk::raii::CommandBuffer*> Device::QueueData::getCommandBuffers(size_
         for (size_t i = 0; i < commandBuffers.back()->size(); i++)
             allocatedCommandBuffers.push_back(&commandBuffers.back()->at(i));
     }
-
+    std::vector<vk::raii::CommandBuffer*> ret;
+    ret.insert(ret.end(), allocatedCommandBuffers.begin() + usedCommandBuffers, allocatedCommandBuffers.end());
     vk::CommandBufferBeginInfo beginInfo;
     beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
-    for (size_t i = usedCommandBuffers; i < allocatedCommandBuffers.size(); i++)
-        allocatedCommandBuffers[i]->begin(beginInfo);
-    usedCommandBuffers = allocatedCommandBuffers.size();
-
-    std::vector<vk::raii::CommandBuffer*> ret;
-    ret.insert(ret.end(), allocatedCommandBuffers.begin(), allocatedCommandBuffers.begin() + count);
+    for (auto& commandBuffer : ret)
+        commandBuffer->begin(beginInfo);
+    usedCommandBuffers += count;
 
     return ret;
 }

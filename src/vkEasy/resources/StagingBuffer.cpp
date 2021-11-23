@@ -37,22 +37,11 @@ void StagingBuffer::update()
 
 void StagingBuffer::getData(std::vector<uint32_t>& data, size_t offset)
 {
-    // Make device writes visible to the host
     auto mapped = m_memory->mapMemory(offset, VK_WHOLE_SIZE);
     vk::MappedMemoryRange mappedRange;
     mappedRange.setMemory(**m_memory).setOffset(offset).setSize(VK_WHOLE_SIZE);
     m_device->getLogicalDevice()->invalidateMappedMemoryRanges(mappedRange);
 
-    // Copy to output
     memcpy(data.data(), mapped, data.size() * sizeof(uint32_t));
     m_memory->unmapMemory();
-
-    // auto mapped = m_memory->mapMemory(offset, size);
-    // vk::MappedMemoryRange mappedRange;
-    // mappedRange.setMemory(**m_memory).setOffset(offset).setSize(size);
-    // m_device->getLogicalDevice()->invalidateMappedMemoryRanges(mappedRange);
-    // // Copy to output
-    // memcpy(data.data(), mapped, size);
-    // m_memory->unmapMemory();
-    // return data;
 }

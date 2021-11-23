@@ -10,11 +10,11 @@ namespace VK_EASY_NAMESPACE {
 class Device : public Errorable {
     friend class Context;
     friend class Graph;
-    friend class Node;
 
 public:
     Device(Device const&) = delete;
     void operator=(Device const&) = delete;
+
     Graph* createGraph();
     vk::raii::Device* getLogicalDevice();
     vk::raii::PhysicalDevice* getPhysicalDevice();
@@ -64,7 +64,6 @@ private:
     size_t m_transferQueueIndex;
     bool m_needsTransferQueue;
 
-    // std::vector<vk::SurfaceKHR*> m_surfaces;
     std::vector<std::unique_ptr<Graph>> m_graphs;
     vk::raii::PhysicalDevice* m_physicalDevice = nullptr;
     bool m_initialized = false;

@@ -8,34 +8,31 @@ class Node;
 
 class Resource {
     friend class Graph;
-    friend class Device;
     friend class Node;
 
 public:
+    Resource(Resource const&) = delete;
+    void operator=(Resource const&) = delete;
     virtual ~Resource() = default;
+
     void addMemoryPropertyFlag(vk::MemoryPropertyFlagBits flag);
     bool isHostMemory();
     bool isBuffer();
     vk::DescriptorType getDescriptorType();
-    //    Resource(Resource&&) = default;
-    //    Resource(const Resource&) = default;
-    //    Resource& operator=(Resource&&) = default;
-    //    Resource& operator=(const Resource&) = default;
-    //    ~Resource() = default;();
 
 protected:
+    Resource() = default;
     virtual void update() = 0;
     virtual void create() = 0;
     bool exists();
 
     vk::MemoryPropertyFlags m_memoryPropertyFlags;
     std::unique_ptr<vk::raii::DeviceMemory> m_memory;
-
     Graph* m_graph = nullptr;
     Device* m_device = nullptr;
+    vk::DescriptorType m_descriptorType;
     bool m_isHostMemory = false;
     bool m_isBuffer = false;
-    vk::DescriptorType m_descriptorType;
 
 private:
     void setGraph(Graph* graph);

@@ -13,7 +13,10 @@ class ShaderStage : public Errorable {
     friend class ComputeNode;
 
 public:
-    explicit ShaderStage(const vk::ShaderStageFlagBits& stage, PipelineNode* parent);
+    ShaderStage(ShaderStage const&) = delete;
+    void operator=(ShaderStage const&) = delete;
+
+    void uses(std::vector<Resource*> resources, size_t binding, size_t set);
     ShaderStage& setShaderFile(const std::string& file, bool watchForChanges = true);
     ShaderStage& setShaderData(const std::vector<char>& data);
     ShaderStage& setEntryPoint(const std::string& entryPoint);
@@ -22,6 +25,8 @@ public:
     ShaderStage& clearConstants();
 
 private:
+    explicit ShaderStage(const vk::ShaderStageFlagBits& stage, PipelineNode* parent);
+
     std::vector<char> loadShader(const std::string& fileName);
     void update(Device* device);
     vk::PipelineShaderStageCreateInfo* getPipelineShaderStageCreateInfo();
