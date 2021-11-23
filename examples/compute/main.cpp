@@ -192,30 +192,23 @@ VulkanExample::VulkanExample()
                 | vk::BufferUsageFlagBits::eTransferDst,
             vk::MemoryPropertyFlagBits::eDeviceLocal, deviceBuffer, deviceMemory, bufferSize);
 
-        // Copy to staging buffer
+        // Create a command buffer for compute operations
         vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
         cmdBufAllocateInfo.setCommandPool(**commandPool)
             .setLevel(vk::CommandBufferLevel::ePrimary)
             .setCommandBufferCount(1);
-        auto copyCmds = vk::raii::CommandBuffers(*device, cmdBufAllocateInfo);
-        auto& copyCmd = copyCmds.at(0);
+        commandBuffers = std::make_unique<vk::raii::CommandBuffers>(*device, cmdBufAllocateInfo);
+        commandBuffer = &commandBuffers->at(0);
 
         vk::CommandBufferBeginInfo cmdBufInfo;
-        copyCmd.begin(cmdBufInfo);
+        commandBuffer->begin(cmdBufInfo);
+
+        commandBuffer->pipelineBarrier(
+            vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer, {}, {}, {}, {});
 
         vk::BufferCopy copyRegion;
         copyRegion.setSize(bufferSize);
-        copyCmd.copyBuffer(**hostBuffer, **deviceBuffer, copyRegion);
-        copyCmd.end();
-
-        vk::SubmitInfo submitInfo;
-        submitInfo.setCommandBuffers(*copyCmd);
-        vk::FenceCreateInfo fenceInfo;
-        auto fence = vk::raii::Fence(*device, fenceInfo);
-
-        // Submit to the queue
-        queue->submit(submitInfo, *fence);
-        auto result = device->waitForFences(*fence, VK_TRUE, UINT64_MAX);
+        commandBuffer->copyBuffer(**hostBuffer, **deviceBuffer, copyRegion);
     }
 
     /*
@@ -285,73 +278,37 @@ VulkanExample::VulkanExample()
         assert(shaderModule);
         computePipelineCreateInfo.stage = shaderStage;
         pipeline = std::make_unique<vk::raii::Pipeline>(*device, *pipelineCache, computePipelineCreateInfo);
-
-        // Create a command buffer for compute operations
-        vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
-        cmdBufAllocateInfo.setCommandPool(**commandPool)
-            .setLevel(vk::CommandBufferLevel::ePrimary)
-            .setCommandBufferCount(1);
-        commandBuffers = std::make_unique<vk::raii::CommandBuffers>(*device, cmdBufAllocateInfo);
-        commandBuffer = &commandBuffers->at(0);
-
-        // Fence for compute CB sync
-        vk::FenceCreateInfo fenceCreateInfo;
-        fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
-        fence = std::make_unique<vk::raii::Fence>(*device, fenceCreateInfo);
     }
 
     /*
                 Command buffer creation (for compute work submission)
         */
     {
-        vk::CommandBufferBeginInfo cmdBufInfo;
-        commandBuffer->begin(cmdBufInfo);
-
-        // Barrier to ensure that input buffer transfer is finished before compute shader reads from it
-        vk::BufferMemoryBarrier bufferBarrier;
-        bufferBarrier.setBuffer(**deviceBuffer)
-            .setSize(VK_WHOLE_SIZE)
-            .setSrcAccessMask(vk::AccessFlagBits::eHostWrite)
-            .setDstAccessMask(vk::AccessFlagBits::eShaderRead)
-            .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-            .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-
         commandBuffer->pipelineBarrier(
-            vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eComputeShader, {}, {}, bufferBarrier, {});
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eComputeShader, {}, {}, {}, {});
 
         commandBuffer->bindPipeline(vk::PipelineBindPoint::eCompute, **pipeline);
         commandBuffer->bindDescriptorSets(vk::PipelineBindPoint::eCompute, **pipelineLayout, 0, **descriptorSet, {});
 
         commandBuffer->dispatch(BUFFER_ELEMENTS, 1, 1);
 
-        // Barrier to ensure that shader writes are finished before buffer is read back from GPU
-        bufferBarrier.setBuffer(**deviceBuffer)
-            .setSize(VK_WHOLE_SIZE)
-            .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
-            .setDstAccessMask(vk::AccessFlagBits::eTransferRead)
-            .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-            .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-
         commandBuffer->pipelineBarrier(
-            vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer, {}, {}, bufferBarrier, {});
+            vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer, {}, {}, {}, {});
 
         // Read back to host visible buffer
         vk::BufferCopy copyRegion;
         copyRegion.setSize(bufferSize);
         commandBuffer->copyBuffer(**deviceBuffer, **hostBuffer, copyRegion);
 
-        // Barrier to ensure that buffer copy is finished before host reading from it
-        bufferBarrier.setBuffer(**hostBuffer)
-            .setSize(VK_WHOLE_SIZE)
-            .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
-            .setDstAccessMask(vk::AccessFlagBits::eHostRead)
-            .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
-            .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-
         commandBuffer->pipelineBarrier(
-            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost, {}, {}, bufferBarrier, {});
+            vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost, {}, {}, {}, {});
 
         commandBuffer->end();
+
+        // Fence for compute CB sync
+        vk::FenceCreateInfo fenceCreateInfo;
+        fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
+        fence = std::make_unique<vk::raii::Fence>(*device, fenceCreateInfo);
 
         // Submit compute work
         device->resetFences(**fence);
@@ -494,3 +451,38 @@ std::unique_ptr<vk::raii::ShaderModule> VulkanExample::loadShader(const std::str
         return std::unique_ptr<vk::raii::ShaderModule>();
     }
 }
+
+// Barrier to ensure that input buffer transfer is finished before compute shader reads from it
+// vk::BufferMemoryBarrier bufferBarrier;
+// bufferBarrier.setBuffer(**deviceBuffer)
+//     .setSize(VK_WHOLE_SIZE)
+//     .setSrcAccessMask(vk::AccessFlagBits::eHostWrite)
+//     .setDstAccessMask(vk::AccessFlagBits::eShaderRead)
+//     .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+//     .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+
+// commandBuffer->pipelineBarrier(
+//     vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eComputeShader, {}, {}, bufferBarrier, {});
+
+// Barrier to ensure that shader writes are finished before buffer is read back from GPU
+// bufferBarrier.setBuffer(**deviceBuffer)
+//     .setSize(VK_WHOLE_SIZE)
+//     .setSrcAccessMask(vk::AccessFlagBits::eShaderWrite)
+//     .setDstAccessMask(vk::AccessFlagBits::eTransferRead)
+//     .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+//     .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+
+// commandBuffer->pipelineBarrier(
+//     vk::PipelineStageFlagBits::eComputeShader, vk::PipelineStageFlagBits::eTransfer, {}, {}, bufferBarrier,
+//     {});
+
+// Barrier to ensure that buffer copy is finished before host reading from it
+// bufferBarrier.setBuffer(**hostBuffer)
+//     .setSize(VK_WHOLE_SIZE)
+//     .setSrcAccessMask(vk::AccessFlagBits::eTransferWrite)
+//     .setDstAccessMask(vk::AccessFlagBits::eHostRead)
+//     .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+//     .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
+
+// commandBuffer->pipelineBarrier(
+//     vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost, {}, {}, bufferBarrier, {});

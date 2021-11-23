@@ -37,7 +37,7 @@ private:
     std::unique_ptr<vk::raii::Instance> m_instance;
     std::unique_ptr<vk::raii::DebugUtilsMessengerEXT> m_debugMessenger;
     std::unique_ptr<vk::raii::PhysicalDevices> m_physicalDevices;
-    std::vector<std::unique_ptr<Device>> m_device;
+    std::vector<std::unique_ptr<Device>> m_devices;
 
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes,

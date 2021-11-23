@@ -27,11 +27,14 @@ protected:
     Node(const std::string& nodeName);
     void uses(Resource* resource);
     Graph* getGraph();
+    Device* getDevice();
+    void addExecutionBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst);
+    void addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
+        vk::AccessFlagBits srcMask, vk::AccessFlagBits dstMask);
     std::function<void(Device*)> m_updateFunction;
     Node* m_nextNode;
     std::vector<Node*> m_dependantNodes;
-
-    vk::QueueFlagBits m_queueType;
+    vk::PipelineStageFlagBits m_pipelineStage;
 
 private:
     void execute();

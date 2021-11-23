@@ -1,10 +1,11 @@
 #include <iostream>
+#include <thread>
 #include <vkEasy/Context.h>
 #include <vkEasy/Graph.h>
+#include <vkEasy/nodes/BufferCopyNode.h>
 #include <vkEasy/nodes/ComputeNode.h>
-#include <vkEasy/nodes/ResourceReadNode.h>
-#include <vkEasy/nodes/ResourceWriteNode.h>
-#include <vkEasy/resources/Buffer.h>
+#include <vkEasy/resources/StagingBuffer.h>
+#include <vkEasy/resources/StorageBuffer.h>
 
 #define BUFFER_ELEMENTS 32
 struct SpecializationData {
@@ -17,7 +18,22 @@ int main()
         vk::easy::Context::initialize();
         auto device = vk::easy::Context::get().createDevice();
         auto graph = device->createGraph();
-        auto buffer = graph->createResource<vk::easy::Buffer>();
+
+        const size_t bufferSize = BUFFER_ELEMENTS * sizeof(uint32_t);
+
+        auto cpuBuffer = graph->createResource<vk::easy::StagingBuffer>();
+        std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
+        std::vector<uint32_t> computeOutput(BUFFER_ELEMENTS);
+        uint32_t n = 0;
+        std::generate(computeInput.begin(), computeInput.end(), [&n] { return n++; });
+        cpuBuffer->setData(computeInput);
+
+        auto gpuBuffer = graph->createResource<vk::easy::StorageBuffer>();
+        gpuBuffer->setSize(bufferSize);
+
+        auto cpuToGpu = graph->createNode<vk::easy::BufferCopyNode>();
+        cpuToGpu->setSrcBuffer(cpuBuffer);
+        cpuToGpu->setDstBuffer(gpuBuffer);
 
         auto compute = graph->createNode<vk::easy::ComputeNode>();
         auto stage = compute->getShaderStage();
@@ -25,45 +41,33 @@ int main()
         stage->setShaderFile("headless.comp.spv");
         stage->defineConstant(
             0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT), sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
-        compute->setDispatchSize(1, 1, 1);
-        compute->onUpdate([&specializationData](auto& node) {
-            node.getShaderStage()->setConstantData(&specializationData, sizeof(SpecializationData));
-            // node.setDispatchSize(BUFFER_ELEMENTS, 1, 1);
-        });
-        compute->readsFrom(buffer, 0);
-        compute->writesTo(buffer, 0);
+        stage->setConstantData(&specializationData, sizeof(SpecializationData), true);
+        compute->setDispatchSize(BUFFER_ELEMENTS, 1, 1);
+        compute->uses({ gpuBuffer }, 0, 0);
 
-        std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
-        std::vector<uint32_t> computeOutput(BUFFER_ELEMENTS);
-        uint32_t n = 0;
-        std::generate(computeInput.begin(), computeInput.end(), [&n] { return n++; });
-
-        auto resourceWriter = graph->createNode<vk::easy::ResourceWriteNode>();
-        resourceWriter->onUpdate([&computeInput](auto& node) { node.setData(computeInput); });
-        resourceWriter->writesTo(buffer);
-
-        auto resourceReader = graph->createNode<vk::easy::ResourceReadNode>();
-        resourceReader->onUpdate([](auto& node) { node.setDataToRead(0); });
-        resourceReader->onDataReady([&computeOutput](const auto& data) { computeOutput = data; });
-        resourceReader->readsFrom(buffer);
+        auto gpuToCpu = graph->createNode<vk::easy::BufferCopyNode>();
+        gpuToCpu->setSrcBuffer(gpuBuffer);
+        gpuToCpu->setDstBuffer(cpuBuffer);
 
         graph->startRecording();
-        resourceWriter();
-        compute();
-        resourceReader();
+        (*cpuToGpu)();
+        (*compute)();
+        (*gpuToCpu)();
         graph->stopRecording();
 
         graph->run();
 
+        cpuBuffer->getData(computeOutput);
+
         std::cout << "Compute input:" << std::endl;
         for (auto& v : computeInput) {
-            std::cout << v;
+            std::cout << v << '\t';
         }
         std::cout << std::endl;
 
         std::cout << "Compute output:" << std::endl;
         for (auto& v : computeOutput) {
-            std::cout << v;
+            std::cout << v << '\t';
         }
         std::cout << std::endl;
 

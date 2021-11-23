@@ -77,8 +77,9 @@ void Context::initialize()
         vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
             | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
             | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning);
-        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-            | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
+        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(
+            /*vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
+| */ vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
 
         context.m_debugMessengerCreateInfo.setMessageSeverity(severityFlags)
             .setMessageType(messageTypeFlags)
@@ -222,6 +223,6 @@ vk::raii::PhysicalDevices& Context::getPhysicalDevices()
 
 Device* Context::createDevice(vk::raii::PhysicalDevice* device)
 {
-    m_device.push_back(std::unique_ptr<Device>(new Device(device)));
-    return m_device.back().get();
+    m_devices.push_back(std::unique_ptr<Device>(new Device(device)));
+    return m_devices.back().get();
 }

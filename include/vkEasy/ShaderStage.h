@@ -22,7 +22,8 @@ public:
 
 private:
     std::vector<char> loadShader(const std::string& fileName);
-    vk::PipelineShaderStageCreateInfo& update(vk::raii::Device& device);
+    void update(vk::raii::Device& device);
+    vk::PipelineShaderStageCreateInfo* getPipelineShaderStageCreateInfo();
 
     std::unique_ptr<vk::raii::ShaderModule> m_shaderModule;
     vk::ShaderModuleCreateInfo m_moduleCreateInfo;
@@ -32,6 +33,7 @@ private:
     std::vector<vk::SpecializationMapEntry> m_preparedSpecializationMapEntries;
     std::vector<char> m_shaderData;
     PipelineNode* m_parent;
+    std::string m_shaderEntryPoint;
     std::string m_shaderFileName;
     std::vector<char> m_data;
     bool m_watchChanges;

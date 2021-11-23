@@ -49,8 +49,9 @@ ShaderStage& ShaderStage::clearConstants()
 
 ShaderStage& ShaderStage::setEntryPoint(const std::string& entryPoint)
 {
+    m_shaderEntryPoint = entryPoint;
     m_parent->needsRebuild();
-    m_shaderStageCreateInfo.setPName(entryPoint.c_str());
+    m_shaderStageCreateInfo.setPName(m_shaderEntryPoint.c_str());
     return *this;
 }
 
@@ -91,7 +92,7 @@ std::vector<char> ShaderStage::loadShader(const std::string& fileName)
     }
 }
 
-vk::PipelineShaderStageCreateInfo& ShaderStage::update(vk::raii::Device& device)
+void ShaderStage::update(vk::raii::Device& device)
 {
     if (m_shaderModuleChanged) {
         m_shaderModule = std::make_unique<vk::raii::ShaderModule>(device, m_moduleCreateInfo);
@@ -103,5 +104,9 @@ vk::PipelineShaderStageCreateInfo& ShaderStage::update(vk::raii::Device& device)
             m_preparedSpecializationMapEntries.push_back(value);
         m_specializationInfo.setMapEntries(m_preparedSpecializationMapEntries);
     }
-    return m_shaderStageCreateInfo;
+}
+
+vk::PipelineShaderStageCreateInfo* ShaderStage::getPipelineShaderStageCreateInfo()
+{
+    return &m_shaderStageCreateInfo;
 }

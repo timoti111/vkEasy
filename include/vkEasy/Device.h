@@ -16,17 +16,24 @@ public:
     Device(Device const&) = delete;
     void operator=(Device const&) = delete;
     Graph* createGraph();
-    vk::raii::Device* getVkDevice();
+    vk::raii::Device* getLogicalDevice();
+    vk::raii::PhysicalDevice* getPhysicalDevice();
+
+    void sendCommandBuffers();
+    void waitForFences();
+    void resetCommandBuffers();
+    void waitForQueue();
+    std::vector<vk::raii::CommandBuffer*> getPresentCommandBuffers(size_t count);
+    std::vector<vk::raii::CommandBuffer*> getComputeCommandBuffers(size_t count);
+    std::vector<vk::raii::CommandBuffer*> getGraphicCommandBuffers(size_t count);
+    std::vector<vk::raii::CommandBuffer*> getTransferCommandBuffers(size_t count);
 
 private:
     Device() = delete;
     Device(vk::raii::PhysicalDevice* device);
     void findPhysicalDevice();
     void initialize();
-    void sendCommandBuffers();
-    void waitForFences();
-    void resetCommandBuffers();
-    std::span<vk::raii::CommandBuffer*> getCommandBuffers(size_t count, vk::QueueFlagBits queueType);
+
     std::vector<char const*> m_requiredExtensionsVkCompatible;
     std::set<std::string> m_requiredExtensions;
     vk::PhysicalDeviceFeatures m_requiredFeatures;
@@ -41,10 +48,11 @@ private:
         size_t usedCommandBuffers = 0;
         std::unique_ptr<vk::raii::Fence> fence;
 
-        std::span<vk::raii::CommandBuffer*> getCommandBuffers(size_t count, vk::raii::Device* device);
+        std::vector<vk::raii::CommandBuffer*> getCommandBuffers(size_t count, vk::raii::Device* device);
         void sendCommandBuffers(vk::raii::Device* device);
         void waitForFence(vk::raii::Device* device);
         void resetCommandBuffers();
+        void waitIdle();
     };
     std::vector<std::unique_ptr<QueueData>> m_queues;
     size_t m_presentQueueIndex;
