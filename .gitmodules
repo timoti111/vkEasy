@@ -7,3 +7,6 @@
 [submodule "extras/VulkanMemoryAllocator"]
 	path = extras/VulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "extras/shaderc"]
+	path = extras/shaderc
+	url = git@github.com:google/shaderc.git
