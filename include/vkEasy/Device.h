@@ -4,6 +4,7 @@
 #include <span>
 #include <vkEasy/Error.h>
 #include <vkEasy/Graph.h>
+#include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/global.h>
 
 namespace VK_EASY_NAMESPACE {
@@ -18,6 +19,7 @@ public:
     Graph* createGraph();
     vk::raii::Device* getLogicalDevice();
     vk::raii::PhysicalDevice* getPhysicalDevice();
+    MemoryAllocator* getAllocator();
 
     void sendCommandBuffers();
     void waitForFences();
@@ -33,6 +35,7 @@ private:
     Device(vk::raii::PhysicalDevice* device);
     void findPhysicalDevice();
     void initialize();
+    void initializeVMA();
 
     std::vector<char const*> m_requiredExtensionsVkCompatible;
     std::set<std::string> m_requiredExtensions;
@@ -64,6 +67,8 @@ private:
     size_t m_transferQueueIndex;
     bool m_needsTransferQueue;
 
+    VmaVulkanFunctions m_vulkanFunctions;
+    std::unique_ptr<MemoryAllocator> m_allocator;
     std::vector<std::unique_ptr<Graph>> m_graphs;
     vk::raii::PhysicalDevice* m_physicalDevice = nullptr;
     bool m_initialized = false;

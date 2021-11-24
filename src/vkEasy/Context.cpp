@@ -34,6 +34,14 @@ void Context::initialize()
     }
 #endif
 
+    if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
+            [](vk::ExtensionProperties const& ep) {
+                return (strcmp(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, ep.extensionName) == 0);
+            })
+        != extensionProperties.end()) {
+        context.m_extensions.insert(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    }
+
     std::set<std::string> supportedExtensionSet;
     std::transform(extensionProperties.begin(), extensionProperties.end(),
         std::inserter(supportedExtensionSet, supportedExtensionSet.end()),

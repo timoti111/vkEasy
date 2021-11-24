@@ -1,4 +1,5 @@
 #pragma once
+#include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/global.h>
 
 namespace VK_EASY_NAMESPACE {
@@ -15,19 +16,19 @@ public:
     void operator=(Resource const&) = delete;
     virtual ~Resource() = default;
 
-    void addMemoryPropertyFlag(vk::MemoryPropertyFlagBits flag);
     bool isHostMemory();
     bool isBuffer();
     vk::DescriptorType getDescriptorType();
 
 protected:
     Resource() = default;
+    void setMemoryUsage(VmaMemoryUsage flag);
     virtual void update() = 0;
     virtual void create() = 0;
-    bool exists();
+    virtual bool exists() = 0;
 
-    vk::MemoryPropertyFlags m_memoryPropertyFlags;
-    std::unique_ptr<vk::raii::DeviceMemory> m_memory;
+    VmaAllocationCreateInfo m_allocInfo;
+
     Graph* m_graph = nullptr;
     Device* m_device = nullptr;
     vk::DescriptorType m_descriptorType;

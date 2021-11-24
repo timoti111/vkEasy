@@ -94,9 +94,7 @@ void PipelineNode::build(Device* device)
                 vk::DescriptorBufferInfo bufferDescriptor;
                 bufferDescriptor.setOffset(0).setRange(VK_WHOLE_SIZE);
                 if (resource->isBuffer()) {
-                    auto buffer = dynamic_cast<Buffer*>(resource);
-                    auto vkBuffer = buffer->getVkBuffer();
-                    bufferDescriptor.setBuffer(**vkBuffer);
+                    bufferDescriptor.setBuffer(dynamic_cast<Buffer*>(resource)->getVkBuffer());
                     descriptor.bufferInfos.push_back(bufferDescriptor);
                 }
             }

@@ -1,4 +1,5 @@
 #pragma once
+#include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/global.h>
 #include <vkEasy/resources/base/Resource.h>
 
@@ -10,7 +11,7 @@ public:
     virtual ~Buffer() = default;
 
     void addBufferUsageFlag(vk::BufferUsageFlagBits flag);
-    vk::raii::Buffer* getVkBuffer();
+    VkBuffer getVkBuffer();
     size_t getSize();
     void setSize(size_t size);
 
@@ -18,9 +19,10 @@ protected:
     Buffer();
     virtual void create();
     virtual void update();
+    virtual bool exists();
 
     vk::BufferUsageFlags m_bufferUsageFlags;
-    std::unique_ptr<vk::raii::Buffer> m_buffer;
+    std::unique_ptr<MemoryAllocator::Buffer> m_buffer;
     size_t m_size = 0;
     bool m_recreateBuffer = false;
 };

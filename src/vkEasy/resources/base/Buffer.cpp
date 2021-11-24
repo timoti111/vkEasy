@@ -15,9 +15,9 @@ void Buffer::addBufferUsageFlag(vk::BufferUsageFlagBits flag)
     m_bufferUsageFlags |= flag;
 }
 
-vk::raii::Buffer* Buffer::getVkBuffer()
+VkBuffer Buffer::getVkBuffer()
 {
-    return m_buffer.get();
+    return **m_buffer;
 }
 
 size_t Buffer::getSize()
@@ -33,30 +33,9 @@ void Buffer::setSize(size_t size)
 
 void Buffer::create()
 {
-    std::cout << "Creating buffer as: " << vk::to_string(m_bufferUsageFlags) << ""
-              << vk::to_string(m_memoryPropertyFlags) << std::endl;
-
     vk::BufferCreateInfo bufferCreateInfo;
     bufferCreateInfo.setUsage(m_bufferUsageFlags).setSize(m_size).setSharingMode(vk::SharingMode::eExclusive);
-    m_buffer = std::make_unique<vk::raii::Buffer>(*m_device->getLogicalDevice(), bufferCreateInfo);
-
-    auto deviceMemoryProperties = m_device->getPhysicalDevice()->getMemoryProperties();
-    auto memReqs = m_buffer->getMemoryRequirements();
-    vk::MemoryAllocateInfo memAlloc;
-    memAlloc.setAllocationSize(memReqs.size);
-
-    for (uint32_t i = 0; i < deviceMemoryProperties.memoryTypeCount; i++) {
-        if ((memReqs.memoryTypeBits & 1) == 1) {
-            if ((deviceMemoryProperties.memoryTypes[i].propertyFlags & m_memoryPropertyFlags)
-                == m_memoryPropertyFlags) {
-                memAlloc.memoryTypeIndex = i;
-            }
-        }
-        memReqs.memoryTypeBits >>= 1;
-    }
-    m_memory = std::make_unique<vk::raii::DeviceMemory>(*m_device->getLogicalDevice(), memAlloc);
-
-    m_buffer->bindMemory(**m_memory, 0);
+    m_buffer = m_device->getAllocator()->createBuffer(bufferCreateInfo, m_allocInfo);
 }
 
 void Buffer::update()
@@ -64,4 +43,9 @@ void Buffer::update()
     if (!exists() || m_recreateBuffer)
         create();
     m_recreateBuffer = false;
+}
+
+bool Buffer::exists()
+{
+    return static_cast<bool>(m_buffer);
 }

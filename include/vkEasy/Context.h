@@ -6,6 +6,8 @@
 
 namespace VK_EASY_NAMESPACE {
 class Context : public Errorable {
+    friend class Device;
+
 public:
     Context(Context const&) = delete;
     void operator=(Context const&) = delete;

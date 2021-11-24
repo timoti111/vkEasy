@@ -6,6 +6,6 @@ StorageBuffer::StorageBuffer()
     : Buffer()
 {
     m_descriptorType = vk::DescriptorType::eStorageBuffer;
-    addMemoryPropertyFlag(vk::MemoryPropertyFlagBits::eDeviceLocal);
+    setMemoryUsage(VMA_MEMORY_USAGE_GPU_ONLY);
     addBufferUsageFlag(vk::BufferUsageFlagBits::eStorageBuffer);
 }

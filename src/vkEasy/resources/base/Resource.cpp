@@ -9,12 +9,11 @@ bool Resource::isBuffer()
     return m_isBuffer;
 }
 
-void Resource::addMemoryPropertyFlag(vk::MemoryPropertyFlagBits flag)
+void Resource::setMemoryUsage(VmaMemoryUsage usage)
 {
-    m_memoryPropertyFlags |= flag;
-    if (flag == vk::MemoryPropertyFlagBits::eHostCached || flag == vk::MemoryPropertyFlagBits::eHostCoherent
-        || flag == vk::MemoryPropertyFlagBits::eHostVisible)
-        m_isHostMemory = true;
+    m_allocInfo.usage = usage;
+    m_isHostMemory = usage == VMA_MEMORY_USAGE_GPU_TO_CPU || usage == VMA_MEMORY_USAGE_CPU_TO_GPU
+        || usage == VMA_MEMORY_USAGE_CPU_ONLY;
 }
 
 bool Resource::isHostMemory()
@@ -25,11 +24,6 @@ bool Resource::isHostMemory()
 vk::DescriptorType Resource::getDescriptorType()
 {
     return m_descriptorType;
-}
-
-bool Resource::exists()
-{
-    return static_cast<bool>(m_memory);
 }
 
 void Resource::setGraph(Graph* graph)

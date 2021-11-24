@@ -6,7 +6,7 @@ using namespace VK_EASY_NAMESPACE;
 StagingBuffer::StagingBuffer()
     : Buffer()
 {
-    addMemoryPropertyFlag(vk::MemoryPropertyFlagBits::eHostVisible);
+    setMemoryUsage(VMA_MEMORY_USAGE_CPU_ONLY);
 }
 
 void StagingBuffer::setData(const std::vector<uint32_t>& data)
@@ -21,15 +21,9 @@ void StagingBuffer::update()
     Buffer::update();
 
     if (m_updateData) {
-        auto mapped = m_memory->mapMemory(0, m_size);
+        void* mapped = m_buffer->mapMemory();
         memcpy(mapped, m_data.data(), m_size);
-        m_memory->unmapMemory();
-
-        mapped = m_memory->mapMemory(0, VK_WHOLE_SIZE);
-        vk::MappedMemoryRange mappedRange;
-        mappedRange.setMemory(**m_memory).setOffset(0).setSize(VK_WHOLE_SIZE);
-        m_device->getLogicalDevice()->flushMappedMemoryRanges(mappedRange);
-        m_memory->unmapMemory();
+        m_buffer->unmapMemory();
     }
 
     m_updateData = false;
@@ -37,11 +31,7 @@ void StagingBuffer::update()
 
 void StagingBuffer::getData(std::vector<uint32_t>& data, size_t offset)
 {
-    auto mapped = m_memory->mapMemory(offset, VK_WHOLE_SIZE);
-    vk::MappedMemoryRange mappedRange;
-    mappedRange.setMemory(**m_memory).setOffset(offset).setSize(VK_WHOLE_SIZE);
-    m_device->getLogicalDevice()->invalidateMappedMemoryRanges(mappedRange);
-
+    void* mapped = m_buffer->mapMemory();
     memcpy(data.data(), mapped, data.size() * sizeof(uint32_t));
-    m_memory->unmapMemory();
+    m_buffer->unmapMemory();
 }

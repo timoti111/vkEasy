@@ -21,7 +21,7 @@ BufferCopyNode::BufferCopyNode()
         std::cout << "Executing: " << objectName() << std::endl;
         if (m_copyRegion.size == VK_WHOLE_SIZE)
             m_copyRegion.setSize(m_src->getSize());
-        transferBuffers[0]->copyBuffer(**m_src->getVkBuffer(), **m_dst->getVkBuffer(), m_copyRegion);
+        transferBuffers[0]->copyBuffer(m_src->getVkBuffer(), m_dst->getVkBuffer(), m_copyRegion);
 
         if (m_dst->isHostMemory())
             addExecutionBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost);

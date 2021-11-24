@@ -28,6 +28,11 @@ vk::raii::PhysicalDevice* Device::getPhysicalDevice()
     return m_physicalDevice;
 }
 
+MemoryAllocator* Device::getAllocator()
+{
+    return m_allocator.get();
+}
+
 void Device::findPhysicalDevice()
 {
     // TODO ALL
@@ -43,7 +48,9 @@ void Device::findPhysicalDevice()
     m_requiredExtensionsVkCompatible.clear();
     m_requiredExtensions.clear();
     m_requiredFeatures = vk::PhysicalDeviceFeatures();
-
+    m_requiredExtensions.emplace(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
+    m_requiredExtensions.emplace(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
+    m_requiredExtensions.emplace(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
     // if (!m_physicalDevice) {
     //     std::multimap<int, vk::PhysicalDevice*> candidates;
     //     for (auto& physicalDevice : vk::easy::Context::get().getPhysicalDevices()) { }
@@ -52,10 +59,24 @@ void Device::findPhysicalDevice()
         m_physicalDevice = &vk::easy::Context::get().getPhysicalDevices()[0];
 
     auto deviceProperties = m_physicalDevice->getProperties();
+    auto deviceExtensions = m_physicalDevice->enumerateDeviceExtensionProperties();
+
+    auto addIfExists = [this, &deviceExtensions](const char* extName) {
+        if (std::find_if(deviceExtensions.begin(), deviceExtensions.end(),
+                [&extName](vk::ExtensionProperties const& ep) { return (strcmp(extName, ep.extensionName) == 0); })
+            != deviceExtensions.end()) {
+            m_requiredExtensions.emplace(extName);
+        }
+    };
+
+    addIfExists(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
+    addIfExists(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
+    addIfExists(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+
     std::cout << "GPU: " << deviceProperties.deviceName.data() << std::endl;
-    // std::transform(m_requiredExtensions.begin(), m_requiredExtensions.end(),
-    //     std::back_inserter(m_requiredExtensionsVkCompatible),
-    //     [](const std::string& string) -> char const* { return string.c_str(); });
+    std::transform(m_requiredExtensions.begin(), m_requiredExtensions.end(),
+        std::back_inserter(m_requiredExtensionsVkCompatible),
+        [](const std::string& string) -> char const* { return string.c_str(); });
 }
 
 void Device::initialize()
@@ -127,6 +148,46 @@ void Device::initialize()
         || (m_needsTransferQueue && m_transferQueueIndex == std::numeric_limits<size_t>::max())
         || (m_needsPresentQueue && m_presentQueueIndex == std::numeric_limits<size_t>::max()))
         error(Error::RequirementsNotFulfilled);
+
+    initializeVMA();
+}
+
+void Device::initializeVMA()
+{
+    m_vulkanFunctions = VmaVulkanFunctions();
+    m_vulkanFunctions.vkAllocateMemory = m_device->getDispatcher()->vkAllocateMemory;
+    m_vulkanFunctions.vkBindBufferMemory2KHR = m_device->getDispatcher()->vkBindBufferMemory2KHR;
+    m_vulkanFunctions.vkBindBufferMemory = m_device->getDispatcher()->vkBindBufferMemory;
+    m_vulkanFunctions.vkBindImageMemory2KHR = m_device->getDispatcher()->vkBindImageMemory2KHR;
+    m_vulkanFunctions.vkBindImageMemory = m_device->getDispatcher()->vkBindImageMemory;
+    m_vulkanFunctions.vkCmdCopyBuffer = m_device->getDispatcher()->vkCmdCopyBuffer;
+    m_vulkanFunctions.vkCreateBuffer = m_device->getDispatcher()->vkCreateBuffer;
+    m_vulkanFunctions.vkCreateImage = m_device->getDispatcher()->vkCreateImage;
+    m_vulkanFunctions.vkDestroyBuffer = m_device->getDispatcher()->vkDestroyBuffer;
+    m_vulkanFunctions.vkDestroyImage = m_device->getDispatcher()->vkDestroyImage;
+    m_vulkanFunctions.vkFlushMappedMemoryRanges = m_device->getDispatcher()->vkFlushMappedMemoryRanges;
+    m_vulkanFunctions.vkFreeMemory = m_device->getDispatcher()->vkFreeMemory;
+    m_vulkanFunctions.vkGetBufferMemoryRequirements2KHR = m_device->getDispatcher()->vkGetBufferMemoryRequirements2KHR;
+    m_vulkanFunctions.vkGetBufferMemoryRequirements = m_device->getDispatcher()->vkGetBufferMemoryRequirements;
+    m_vulkanFunctions.vkGetImageMemoryRequirements2KHR = m_device->getDispatcher()->vkGetImageMemoryRequirements2KHR;
+    m_vulkanFunctions.vkGetImageMemoryRequirements = m_device->getDispatcher()->vkGetImageMemoryRequirements;
+    m_vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR
+        = Context::get().m_instance->getDispatcher()->vkGetPhysicalDeviceMemoryProperties2KHR;
+    m_vulkanFunctions.vkGetPhysicalDeviceMemoryProperties
+        = Context::get().m_instance->getDispatcher()->vkGetPhysicalDeviceMemoryProperties;
+    m_vulkanFunctions.vkGetPhysicalDeviceProperties
+        = Context::get().m_instance->getDispatcher()->vkGetPhysicalDeviceProperties;
+    m_vulkanFunctions.vkInvalidateMappedMemoryRanges = m_device->getDispatcher()->vkInvalidateMappedMemoryRanges;
+    m_vulkanFunctions.vkMapMemory = m_device->getDispatcher()->vkMapMemory;
+    m_vulkanFunctions.vkUnmapMemory = m_device->getDispatcher()->vkUnmapMemory;
+
+    VmaAllocatorCreateInfo allocatorInfo = {};
+    allocatorInfo.vulkanApiVersion = Context::get().m_applicationInfo.apiVersion;
+    allocatorInfo.physicalDevice = **m_physicalDevice;
+    allocatorInfo.device = **m_device;
+    allocatorInfo.instance = **Context::get().m_instance;
+    allocatorInfo.pVulkanFunctions = &m_vulkanFunctions;
+    m_allocator = std::make_unique<MemoryAllocator>(allocatorInfo);
 }
 
 std::vector<vk::raii::CommandBuffer*> Device::getComputeCommandBuffers(size_t count)

@@ -44,6 +44,7 @@ set(VK_EASY_SOURCES
     "src/vkEasy/Error.cpp"
     "src/vkEasy/global.cpp"
     "src/vkEasy/Graph.cpp"
+    "src/vkEasy/MemoryAllocator.cpp"
     "src/vkEasy/ShaderStage.cpp"
 )
 set(VK_EASY_INCLUDES
@@ -60,6 +61,7 @@ set(VK_EASY_INCLUDES
     "include/vkEasy/Error.h"
     "include/vkEasy/global.h"
     "include/vkEasy/Graph.h"
+    "include/vkEasy/MemoryAllocator.h"
     "include/vkEasy/ShaderStage.h"
     "include/vkEasy/Utils.h"
 )
