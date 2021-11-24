@@ -112,17 +112,17 @@ void PipelineNode::build(Device* device)
     m_pipelineRebuild = false;
 }
 
-void PipelineNode::uses(std::vector<Resource*> resources, size_t binding, size_t set, vk::ShaderStageFlagBits flag)
+Descriptor* PipelineNode::createDescriptor(std::vector<Resource*> resources, size_t binding, size_t set)
 {
     m_pipelineRebuild = true;
-    PipelineNode::Descriptor descriptor;
+    Descriptor descriptor;
     for (auto& resource : resources) {
         Node::uses(resource);
         descriptor.type = resource->getDescriptorType();
     }
     descriptor.resources = resources;
-    descriptor.shaderStageFlags |= flag;
     m_layout[set][binding] = std::move(descriptor);
+    return &m_layout[set][binding];
 }
 
 ShaderStage* PipelineNode::createShaderStage(const vk::ShaderStageFlagBits& stage)

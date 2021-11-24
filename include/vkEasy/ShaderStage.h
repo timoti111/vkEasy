@@ -8,6 +8,7 @@
 namespace VK_EASY_NAMESPACE {
 class PipelineNode;
 class Device;
+struct Descriptor;
 
 class ShaderStage : public Errorable {
     friend class PipelineNode;
@@ -17,7 +18,7 @@ public:
     ShaderStage(ShaderStage const&) = delete;
     void operator=(ShaderStage const&) = delete;
 
-    void uses(std::vector<Resource*> resources, size_t binding, size_t set);
+    void usesDescriptor(Descriptor* descriptor);
     ShaderStage& setShaderFile(const std::string& file, bool watchForChanges = true);
     ShaderStage& setShaderData(const std::vector<uint32_t>& data);
     ShaderStage& setEntryPoint(const std::string& entryPoint);

@@ -1,5 +1,4 @@
 #include <iostream>
-#include <thread>
 #include <vkEasy/Context.h>
 #include <vkEasy/Graph.h>
 #include <vkEasy/nodes/BufferCopyNode.h>
@@ -37,14 +36,16 @@ int main()
         cpuToGpu->setDstBuffer(gpuBuffer);
 
         auto compute = graph->createNode<vk::easy::ComputeNode>();
+        auto gpuBufferDescriptor = compute->createDescriptor({ gpuBuffer }, 0, 0);
+        compute->setDispatchSize(BUFFER_ELEMENTS, 1, 1);
+
         auto stage = compute->getShaderStage();
         SpecializationData specializationData;
         stage->setShaderFile("headless.comp");
         stage->defineConstant(
             0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT), sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
         stage->setConstantData(&specializationData, sizeof(SpecializationData), true);
-        stage->uses({ gpuBuffer }, 0, 0);
-        compute->setDispatchSize(BUFFER_ELEMENTS, 1, 1);
+        stage->usesDescriptor(gpuBufferDescriptor);
 
         auto gpuToCpu = graph->createNode<vk::easy::BufferCopyNode>();
         gpuToCpu->setSrcBuffer(gpuBuffer);
