@@ -10,13 +10,13 @@ public:
     ComputeNode(ComputeNode const&) = delete;
     void operator=(ComputeNode const&) = delete;
 
-    ShaderStage* getShaderStage();
-    void onUpdate(std::function<void(ComputeNode&)> update);
+    ShaderStage& getShaderStage();
     void setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
 protected:
     ComputeNode();
-    virtual void buildPipeline(vk::easy::Device* device) override;
+    void update(Device* device);
+    void buildPipeline(vk::easy::Device* device);
 
 private:
     ShaderStage* m_shaderStage;

@@ -10,30 +10,25 @@ ComputeNode::ComputeNode()
 {
     m_pipelineStage = vk::PipelineStageFlagBits::eComputeShader;
     m_shaderStage = createShaderStage(vk::ShaderStageFlagBits::eCompute);
-    m_updateFunction = [this](Device* device) {
-        m_basePipelineUpdateFunction(device);
-
-        auto computeBuffers = device->getComputeCommandBuffers(1);
-        if (computeBuffers.empty())
-            return;
-
-        std::cout << "Executing: " << objectName() << " " << m_dispatchSize[0] << " " << m_dispatchSize[1] << " "
-                  << m_dispatchSize[2] << std::endl;
-        computeBuffers[0]->bindPipeline(vk::PipelineBindPoint::eCompute, **m_pipeline);
-        computeBuffers[0]->bindDescriptorSets(
-            vk::PipelineBindPoint::eCompute, **m_pipelineLayout, 0, m_descriptorSetsToBind, {});
-        computeBuffers[0]->dispatch(m_dispatchSize[0], m_dispatchSize[1], m_dispatchSize[2]);
-    };
 }
 
-ShaderStage* ComputeNode::getShaderStage()
+void ComputeNode::update(Device* device)
 {
-    return m_shaderStage;
+    m_basePipelineUpdateFunction(device);
+
+    auto computeBuffers = device->getComputeCommandBuffers(1);
+    if (computeBuffers.empty())
+        return;
+
+    computeBuffers[0]->bindPipeline(vk::PipelineBindPoint::eCompute, **m_pipeline);
+    computeBuffers[0]->bindDescriptorSets(
+        vk::PipelineBindPoint::eCompute, **m_pipelineLayout, 0, m_descriptorSetsToBind, {});
+    computeBuffers[0]->dispatch(m_dispatchSize[0], m_dispatchSize[1], m_dispatchSize[2]);
 }
 
-void ComputeNode::onUpdate(std::function<void(ComputeNode&)> update)
+ShaderStage& ComputeNode::getShaderStage()
 {
-    m_onUpdateFunction = [update, this]() { update(*this); };
+    return *m_shaderStage;
 }
 
 void ComputeNode::setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)

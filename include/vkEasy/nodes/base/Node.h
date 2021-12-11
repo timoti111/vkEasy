@@ -14,6 +14,8 @@ class Device;
 class Node : public Errorable {
     friend class Graph;
     friend class Device;
+    friend class MemoryWriteNode;
+    friend class MemoryReadNode;
 
 public:
     Node(Node const&) = delete;
@@ -28,13 +30,18 @@ protected:
     void uses(Resource* resource);
     Graph* getGraph();
     Device* getDevice();
+    void addEvent(std::function<void()> event);
     void addExecutionBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst);
     void addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
         vk::AccessFlagBits srcMask, vk::AccessFlagBits dstMask);
-    std::function<void(Device*)> m_updateFunction;
+    virtual void update(Device* device) = 0;
+
     Node* m_nextNode;
     std::vector<Node*> m_dependantNodes;
     vk::PipelineStageFlagBits m_pipelineStage;
+
+    std::function<void()> m_preUpdateFunction;
+    std::function<void()> m_postUpdateFunction;
 
 private:
     void execute();

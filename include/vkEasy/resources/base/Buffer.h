@@ -22,7 +22,6 @@ protected:
     virtual bool exists();
 
     vk::BufferUsageFlags m_bufferUsageFlags;
-    std::unique_ptr<MemoryAllocator::Buffer> m_buffer;
     size_t m_size = 0;
     bool m_recreateBuffer = false;
 };

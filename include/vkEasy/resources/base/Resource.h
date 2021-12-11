@@ -16,9 +16,15 @@ public:
     void operator=(Resource const&) = delete;
     virtual ~Resource() = default;
 
-    bool isHostMemory();
     bool isBuffer();
     vk::DescriptorType getDescriptorType();
+    MemoryAllocator::Resource& getMemory();
+
+    typedef enum OptimizationFlags {
+        NO_OPTIMIZATION,
+        CPU_TO_GPU = VMA_MEMORY_USAGE_CPU_TO_GPU,
+        GPU_TO_CPU = VMA_MEMORY_USAGE_GPU_TO_CPU
+    } OptimizationFlags;
 
 protected:
     Resource() = default;
@@ -27,13 +33,16 @@ protected:
     virtual void create() = 0;
     virtual bool exists() = 0;
 
+    virtual void setOptimization(OptimizationFlags optimization);
+
     VmaAllocationCreateInfo m_allocInfo;
 
     Graph* m_graph = nullptr;
     Device* m_device = nullptr;
     vk::DescriptorType m_descriptorType;
-    bool m_isHostMemory = false;
     bool m_isBuffer = false;
+
+    std::unique_ptr<MemoryAllocator::Resource> m_vmaResource;
 
 private:
     void setGraph(Graph* graph);

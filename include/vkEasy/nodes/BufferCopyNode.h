@@ -1,6 +1,6 @@
 #pragma once
 #include <vkEasy/nodes/base/Node.h>
-#include <vkEasy/resources/base/Buffer.h>
+#include <vkEasy/resources/base/Resource.h>
 
 namespace VK_EASY_NAMESPACE {
 class BufferCopyNode : public Node {
@@ -10,18 +10,16 @@ public:
     BufferCopyNode(BufferCopyNode const&) = delete;
     void operator=(BufferCopyNode const&) = delete;
 
-    void setSrcBuffer(Buffer* buffer, size_t size = VK_WHOLE_SIZE, size_t offset = 0);
-    void setDstBuffer(Buffer* buffer, size_t offset = 0);
-
-    void onUpdate(std::function<void(BufferCopyNode&)> update);
+    void setSrcResource(Resource& resource, size_t size = VK_WHOLE_SIZE, size_t offset = 0);
+    void setDstResource(Resource& resource, size_t offset = 0);
 
 protected:
     BufferCopyNode();
+    void update(Device* device);
 
 private:
-    std::function<void()> m_onUpdateFunction;
     vk::BufferCopy m_copyRegion;
-    Buffer* m_src;
-    Buffer* m_dst;
+    Resource* m_src;
+    Resource* m_dst;
 };
 } // namespace VK_EASY_NAMESPACE

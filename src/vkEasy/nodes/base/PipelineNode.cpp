@@ -8,16 +8,14 @@ PipelineNode::PipelineNode(const std::string& nodeName)
     : Node(nodeName)
 {
     m_basePipelineUpdateFunction = [this](Device* device) {
-        if (m_onUpdateFunction)
-            m_onUpdateFunction();
-
         if (m_pipelineRebuild)
             build(device);
 
-        if (m_needsRebuild) {
-            m_needsRebuild = false;
+        if (m_needsRebuild || m_pipelineRebuild)
             buildPipeline(device);
-        }
+
+        m_needsRebuild = false;
+        m_pipelineRebuild = false;
     };
 }
 
@@ -107,7 +105,6 @@ void PipelineNode::build(Device* device)
     }
 
     device->getLogicalDevice()->updateDescriptorSets(m_writeDescriptorSets, {});
-    m_pipelineRebuild = false;
 }
 
 Descriptor* PipelineNode::createDescriptor(std::vector<Resource*> resources, size_t binding, size_t set)

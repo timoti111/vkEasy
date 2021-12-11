@@ -33,10 +33,10 @@ void Node::operator()()
 void Node::addExecutionBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst)
 {
     std::cout << "Execution barrier from: " << vk::to_string(src) << " to: " << vk::to_string(dst) << std::endl;
-    auto transferBuffers = m_device->getTransferCommandBuffers(1);
-    if (transferBuffers.empty())
+    auto buffers = m_device->getComputeCommandBuffers(1);
+    if (buffers.empty())
         return;
-    transferBuffers[0]->pipelineBarrier(src, dst, {}, {}, {}, {});
+    buffers[0]->pipelineBarrier(src, dst, {}, {}, {}, {});
 }
 
 void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
@@ -50,20 +50,39 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
         .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
         .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
     std::cout << "Buffer barrier from: " << vk::to_string(src) << " to: " << vk::to_string(dst) << std::endl;
-    auto transferBuffers = m_device->getTransferCommandBuffers(1);
-    if (transferBuffers.empty())
+    auto buffers = m_device->getComputeCommandBuffers(1);
+    if (buffers.empty())
         return;
-    transferBuffers[0]->pipelineBarrier(src, dst, {}, {}, bufferBarrier, {});
+    buffers[0]->pipelineBarrier(src, dst, {}, {}, bufferBarrier, {});
+}
+
+void Node::addEvent(std::function<void()> event)
+{
+    std::cout << "Adding event: " << vk::to_string(m_graph->getLastPipelineStage()) << std::endl;
+    auto vkEvent = m_graph->createEvent(event);
+    auto buffers = m_device->getComputeCommandBuffers(1);
+    if (buffers.empty())
+        return;
+    buffers[0]->setEvent(**vkEvent, m_graph->getLastPipelineStage());
 }
 
 void Node::execute()
 {
-    if (!m_dependantNodes.empty())
-        addExecutionBarrier(m_dependantNodes[0]->m_pipelineStage, m_pipelineStage);
+    if (m_pipelineStage != vk::PipelineStageFlagBits::eNoneKHR) {
+        auto lastPipelineStage = m_graph->getLastPipelineStage();
+        m_graph->setActualPipelineStage(m_pipelineStage);
+        if (lastPipelineStage != vk::PipelineStageFlagBits::eNoneKHR)
+            addExecutionBarrier(lastPipelineStage, m_pipelineStage);
+    }
+
     for (auto& usedResource : m_usedResources)
         usedResource->update();
-    if (m_updateFunction)
-        m_updateFunction(m_device);
+    if (m_preUpdateFunction)
+        m_preUpdateFunction();
+    std::cout << "Executing: " << objectName() << std::endl;
+    update(m_device);
+    if (m_postUpdateFunction)
+        m_postUpdateFunction();
 }
 
 Graph* Node::getGraph()

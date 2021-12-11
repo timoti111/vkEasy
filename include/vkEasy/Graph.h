@@ -22,23 +22,28 @@ public:
     void run();
 
     template <class T>
-    requires(std::is_base_of_v<Node, T> && !std::is_same_v<Node, T>) T* createNode()
+    requires(std::is_base_of_v<Node, T> && !std::is_same_v<Node, T>) T& createNode()
     {
         m_nodes.push_back(std::unique_ptr<T>(new T()));
         m_nodes.back()->setGraph(this);
-        return dynamic_cast<T*>(m_nodes.back().get());
+        return *dynamic_cast<T*>(m_nodes.back().get());
     }
 
     template <class T>
-    requires(std::is_base_of_v<Resource, T> && !std::is_same_v<Resource, T>) T* createResource()
+    requires(std::is_base_of_v<Resource, T> && !std::is_same_v<Resource, T>) T& createResource(
+        Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION)
     {
         m_resources.push_back(std::unique_ptr<T>(new T()));
         m_resources.back()->setGraph(this);
-        return dynamic_cast<T*>(m_resources.back().get());
+        m_resources.back()->setOptimization(optimization);
+        return *dynamic_cast<T*>(m_resources.back().get());
     }
 
 private:
     Graph();
+    vk::raii::Event* createEvent(std::function<void()> action);
+    void setActualPipelineStage(vk::PipelineStageFlagBits stage);
+    vk::PipelineStageFlagBits getLastPipelineStage();
     void setDevice(Device* device);
     bool m_recording = false;
 
@@ -48,6 +53,12 @@ private:
 
     std::vector<std::unique_ptr<Node>> m_nodes;
     std::vector<std::unique_ptr<Resource>> m_resources;
+    struct Event {
+        std::unique_ptr<vk::raii::Event> vkEvent;
+        std::function<void()> action;
+    };
+    std::vector<Event> m_events;
+    vk::PipelineStageFlagBits m_lastPipelineStage;
 
     Device* m_device;
 };

@@ -40,7 +40,6 @@ protected:
     std::vector<vk::DescriptorSetLayout> m_setLayoutsVk;
     std::unique_ptr<vk::raii::PipelineLayout> m_pipelineLayout;
 
-    std::function<void()> m_onUpdateFunction;
     std::function<void(Device*)> m_basePipelineUpdateFunction;
     bool m_needsRebuild = true;
     bool m_pipelineRebuild = false;

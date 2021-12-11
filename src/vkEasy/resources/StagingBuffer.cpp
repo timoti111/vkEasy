@@ -9,11 +9,18 @@ StagingBuffer::StagingBuffer()
     setMemoryUsage(VMA_MEMORY_USAGE_CPU_ONLY);
 }
 
-void StagingBuffer::setData(const std::vector<uint32_t>& data)
+void StagingBuffer::setData(const std::vector<uint8_t>& data)
 {
     m_updateData = true;
     m_data = data;
-    setSize(m_data.size() * sizeof(uint32_t));
+    setSize(m_data.size());
+}
+
+void StagingBuffer::getData(std::vector<uint8_t>& data, size_t offset)
+{
+    auto mapped = reinterpret_cast<uint8_t*>(m_vmaResource->mapMemory());
+    memcpy(data.data(), mapped + offset, data.size());
+    m_vmaResource->unmapMemory();
 }
 
 void StagingBuffer::update()
@@ -21,17 +28,10 @@ void StagingBuffer::update()
     Buffer::update();
 
     if (m_updateData) {
-        void* mapped = m_buffer->mapMemory();
-        memcpy(mapped, m_data.data(), m_size);
-        m_buffer->unmapMemory();
+        void* mapped = m_vmaResource->mapMemory();
+        memcpy(mapped, m_data.data(), m_data.size());
+        m_vmaResource->unmapMemory();
     }
 
     m_updateData = false;
-}
-
-void StagingBuffer::getData(std::vector<uint32_t>& data, size_t offset)
-{
-    void* mapped = m_buffer->mapMemory();
-    memcpy(data.data(), mapped, data.size() * sizeof(uint32_t));
-    m_buffer->unmapMemory();
 }

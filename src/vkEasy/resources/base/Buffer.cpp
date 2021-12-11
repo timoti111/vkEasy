@@ -17,7 +17,7 @@ void Buffer::addBufferUsageFlag(vk::BufferUsageFlagBits flag)
 
 VkBuffer Buffer::getVkBuffer()
 {
-    return **m_buffer;
+    return **dynamic_cast<MemoryAllocator::Buffer*>(m_vmaResource.get());
 }
 
 size_t Buffer::getSize()
@@ -35,7 +35,7 @@ void Buffer::create()
 {
     vk::BufferCreateInfo bufferCreateInfo;
     bufferCreateInfo.setUsage(m_bufferUsageFlags).setSize(m_size).setSharingMode(vk::SharingMode::eExclusive);
-    m_buffer = m_device->getAllocator()->createBuffer(bufferCreateInfo, m_allocInfo);
+    m_vmaResource = m_device->getAllocator()->createBuffer(bufferCreateInfo, m_allocInfo);
 }
 
 void Buffer::update()
@@ -47,5 +47,5 @@ void Buffer::update()
 
 bool Buffer::exists()
 {
-    return static_cast<bool>(m_buffer);
+    return static_cast<bool>(m_vmaResource);
 }

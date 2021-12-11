@@ -11,14 +11,12 @@ bool Resource::isBuffer()
 
 void Resource::setMemoryUsage(VmaMemoryUsage usage)
 {
-    m_allocInfo.usage = usage;
-    m_isHostMemory = usage == VMA_MEMORY_USAGE_GPU_TO_CPU || usage == VMA_MEMORY_USAGE_CPU_TO_GPU
-        || usage == VMA_MEMORY_USAGE_CPU_ONLY;
-}
+    if (usage == VMA_MEMORY_USAGE_GPU_ONLY)
+        m_allocInfo.flags &= ~VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    else
+        m_allocInfo.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT;
 
-bool Resource::isHostMemory()
-{
-    return m_isHostMemory;
+    m_allocInfo.usage = usage;
 }
 
 vk::DescriptorType Resource::getDescriptorType()
@@ -26,8 +24,20 @@ vk::DescriptorType Resource::getDescriptorType()
     return m_descriptorType;
 }
 
+MemoryAllocator::Resource& Resource::getMemory()
+{
+    return *m_vmaResource.get();
+}
+
 void Resource::setGraph(Graph* graph)
 {
     m_graph = graph;
     m_device = graph->m_device;
+}
+
+void Resource::setOptimization(OptimizationFlags optimization)
+{
+    if (m_allocInfo.usage == VMA_MEMORY_USAGE_CPU_ONLY || optimization == NO_OPTIMIZATION)
+        return;
+    setMemoryUsage(static_cast<VmaMemoryUsage>(optimization));
 }

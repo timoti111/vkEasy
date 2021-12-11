@@ -25,7 +25,7 @@ public:
     void addLayers(std::vector<std::string> layers);
 
     vk::raii::PhysicalDevices& getPhysicalDevices();
-    vk::easy::Device* createDevice(vk::raii::PhysicalDevice* device = nullptr);
+    vk::easy::Device& createDevice(vk::raii::PhysicalDevice* device = nullptr);
 
 private:
     Context();

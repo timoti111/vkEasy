@@ -35,10 +35,13 @@ set(VK_EASY_SOURCES
     "src/vkEasy/nodes/base/PipelineNode.cpp"
     "src/vkEasy/nodes/BufferCopyNode.cpp"
     "src/vkEasy/nodes/ComputeNode.cpp"
+    "src/vkEasy/nodes/MemoryReadNode.cpp"
+    "src/vkEasy/nodes/MemoryWriteNode.cpp"
     "src/vkEasy/resources/base/Buffer.cpp"
     "src/vkEasy/resources/base/Resource.cpp"
     "src/vkEasy/resources/StagingBuffer.cpp"
     "src/vkEasy/resources/StorageBuffer.cpp"
+    "src/vkEasy/resources/UniformBuffer.cpp"
     "src/vkEasy/Context.cpp"
     "src/vkEasy/Device.cpp"
     "src/vkEasy/Error.cpp"
@@ -52,10 +55,13 @@ set(VK_EASY_INCLUDES
     "include/vkEasy/nodes/base/PipelineNode.h"
     "include/vkEasy/nodes/BufferCopyNode.h"
     "include/vkEasy/nodes/ComputeNode.h"
+    "include/vkEasy/nodes/MemoryReadNode.h"
+    "include/vkEasy/nodes/MemoryWriteNode.h"
     "include/vkEasy/resources/base/Buffer.h"
     "include/vkEasy/resources/base/Resource.h"
     "include/vkEasy/resources/StagingBuffer.h"
     "include/vkEasy/resources/StorageBuffer.h"
+    "include/vkEasy/resources/UniformBuffer.h"
     "include/vkEasy/Context.h"
     "include/vkEasy/Device.h"
     "include/vkEasy/Error.h"
@@ -81,7 +87,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYN
 target_link_libraries(${PROJECT_NAME} shaderc ${CMAKE_DL_LIBS})
 
 if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /WX /permissive-)
+    target_compile_options(${PROJECT_NAME} PRIVATE /W4 /permissive-) # /WX
 else(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 endif(MSVC)

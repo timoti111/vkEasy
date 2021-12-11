@@ -16,7 +16,7 @@ public:
     Device(Device const&) = delete;
     void operator=(Device const&) = delete;
 
-    Graph* createGraph();
+    Graph& createGraph();
     vk::raii::Device* getLogicalDevice();
     vk::raii::PhysicalDevice* getPhysicalDevice();
     MemoryAllocator* getAllocator();
@@ -67,7 +67,6 @@ private:
     size_t m_transferQueueIndex;
     bool m_needsTransferQueue;
 
-    VmaVulkanFunctions m_vulkanFunctions;
     std::unique_ptr<MemoryAllocator> m_allocator;
     std::vector<std::unique_ptr<Graph>> m_graphs;
     vk::raii::PhysicalDevice* m_physicalDevice = nullptr;

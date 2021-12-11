@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vkEasy/Device.h>
 #include <vkEasy/nodes/BufferCopyNode.h>
+#include <vkEasy/resources/base/Buffer.h>
 
 using namespace VK_EASY_NAMESPACE;
 
@@ -8,43 +9,41 @@ BufferCopyNode::BufferCopyNode()
     : Node("BufferCopyNode")
 {
     m_pipelineStage = vk::PipelineStageFlagBits::eTransfer;
-    m_updateFunction = [this](Device* device) {
-        if (m_onUpdateFunction)
-            m_onUpdateFunction();
-        auto transferBuffers = device->getTransferCommandBuffers(1);
-        if (transferBuffers.empty())
-            return;
+}
 
-        if (m_src->isHostMemory())
-            addExecutionBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer);
+void BufferCopyNode::update(Device* device)
+{
+    auto transferBuffers = device->getTransferCommandBuffers(1);
+    if (transferBuffers.empty())
+        return;
 
-        std::cout << "Executing: " << objectName() << std::endl;
+    auto m_srcBuffer = dynamic_cast<Buffer*>(m_src);
+    auto m_dstBuffer = dynamic_cast<Buffer*>(m_dst);
+    if (m_srcBuffer && m_dstBuffer) {
         if (m_copyRegion.size == VK_WHOLE_SIZE)
-            m_copyRegion.setSize(m_src->getSize());
-        transferBuffers[0]->copyBuffer(m_src->getVkBuffer(), m_dst->getVkBuffer(), m_copyRegion);
-
-        if (m_dst->isHostMemory())
-            addExecutionBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eHost);
-    };
+            m_copyRegion.setSize(m_srcBuffer->getSize() - m_copyRegion.srcOffset);
+        transferBuffers[0]->copyBuffer(m_srcBuffer->getVkBuffer(), m_dstBuffer->getVkBuffer(), m_copyRegion);
+    }
 }
 
-void BufferCopyNode::setSrcBuffer(Buffer* buffer, size_t size, size_t offset)
+void BufferCopyNode::setSrcResource(Resource& resource, size_t size, size_t offset)
 {
-    uses(buffer);
-    m_copyRegion.setSize(size).setSrcOffset(offset);
-    m_src = buffer;
-    m_src->addBufferUsageFlag(vk::BufferUsageFlagBits::eTransferSrc);
+    uses(&resource);
+    m_src = &resource;
+    auto m_srcBuffer = dynamic_cast<Buffer*>(m_src);
+    if (m_srcBuffer) {
+        m_copyRegion.setSize(size).setSrcOffset(offset);
+        m_srcBuffer->addBufferUsageFlag(vk::BufferUsageFlagBits::eTransferSrc);
+    }
 }
 
-void BufferCopyNode::setDstBuffer(Buffer* buffer, size_t offset)
+void BufferCopyNode::setDstResource(Resource& resource, size_t offset)
 {
-    uses(buffer);
-    m_copyRegion.setDstOffset(offset);
-    m_dst = buffer;
-    m_dst->addBufferUsageFlag(vk::BufferUsageFlagBits::eTransferDst);
-}
-
-void BufferCopyNode::onUpdate(std::function<void(BufferCopyNode&)> update)
-{
-    m_onUpdateFunction = [update, this]() { update(*this); };
+    uses(&resource);
+    m_dst = &resource;
+    auto m_dstBuffer = dynamic_cast<Buffer*>(m_dst);
+    if (m_dstBuffer) {
+        m_copyRegion.setDstOffset(offset);
+        m_dstBuffer->addBufferUsageFlag(vk::BufferUsageFlagBits::eTransferDst);
+    }
 }

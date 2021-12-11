@@ -45,7 +45,7 @@ void Context::initialize()
     std::set<std::string> supportedExtensionSet;
     std::transform(extensionProperties.begin(), extensionProperties.end(),
         std::inserter(supportedExtensionSet, supportedExtensionSet.end()),
-        [](const vk::ExtensionProperties& ext) -> std::string { return std::string(ext.extensionName); });
+        [](const vk::ExtensionProperties& ext) -> std::string { return std::string(ext.extensionName.data()); });
 
     std::vector<std::string> unsupportedExtensions(context.m_extensions.size());
     auto it = std::set_difference(context.m_extensions.begin(), context.m_extensions.end(),
@@ -55,7 +55,7 @@ void Context::initialize()
     std::set<std::string> supportedLayerSet;
     std::transform(layerProperties.begin(), layerProperties.end(),
         std::inserter(supportedLayerSet, supportedLayerSet.end()),
-        [](const vk::LayerProperties& layer) -> std::string { return std::string(layer.layerName); });
+        [](const vk::LayerProperties& layer) -> std::string { return std::string(layer.layerName.data()); });
 
     std::vector<std::string> unsupportedLayers(context.m_layers.size());
     it = std::set_difference(context.m_layers.begin(), context.m_layers.end(), supportedLayerSet.begin(),
@@ -83,11 +83,10 @@ void Context::initialize()
 
     if (context.m_extensions.contains(VK_EXT_DEBUG_UTILS_EXTENSION_NAME)) {
         vk::DebugUtilsMessageSeverityFlagsEXT severityFlags(vk::DebugUtilsMessageSeverityFlagBitsEXT::eError
-            | vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo
+            /*| vk::DebugUtilsMessageSeverityFlagBitsEXT::eVerbose | vk::DebugUtilsMessageSeverityFlagBitsEXT::eInfo*/
             | vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning);
-        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(
-            /*vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
-| */ vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
+        vk::DebugUtilsMessageTypeFlagsEXT messageTypeFlags(vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral
+            | vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
 
         context.m_debugMessengerCreateInfo.setMessageSeverity(severityFlags)
             .setMessageType(messageTypeFlags)
@@ -229,8 +228,8 @@ vk::raii::PhysicalDevices& Context::getPhysicalDevices()
     return *m_physicalDevices;
 }
 
-Device* Context::createDevice(vk::raii::PhysicalDevice* device)
+Device& Context::createDevice(vk::raii::PhysicalDevice* device)
 {
     m_devices.push_back(std::unique_ptr<Device>(new Device(device)));
-    return m_devices.back().get();
+    return *m_devices.back().get();
 }

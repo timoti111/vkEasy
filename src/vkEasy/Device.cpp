@@ -11,11 +11,11 @@ Device::Device(vk::raii::PhysicalDevice* device)
     m_physicalDevice = device;
 }
 
-Graph* Device::createGraph()
+Graph& Device::createGraph()
 {
     m_graphs.push_back(std::unique_ptr<Graph>(new Graph()));
     m_graphs.back()->setDevice(this);
-    return m_graphs.back().get();
+    return *m_graphs.back().get();
 }
 
 vk::raii::Device* Device::getLogicalDevice()
@@ -154,40 +154,12 @@ void Device::initialize()
 
 void Device::initializeVMA()
 {
-    m_vulkanFunctions = VmaVulkanFunctions();
-    m_vulkanFunctions.vkAllocateMemory = m_device->getDispatcher()->vkAllocateMemory;
-    m_vulkanFunctions.vkBindBufferMemory2KHR = m_device->getDispatcher()->vkBindBufferMemory2KHR;
-    m_vulkanFunctions.vkBindBufferMemory = m_device->getDispatcher()->vkBindBufferMemory;
-    m_vulkanFunctions.vkBindImageMemory2KHR = m_device->getDispatcher()->vkBindImageMemory2KHR;
-    m_vulkanFunctions.vkBindImageMemory = m_device->getDispatcher()->vkBindImageMemory;
-    m_vulkanFunctions.vkCmdCopyBuffer = m_device->getDispatcher()->vkCmdCopyBuffer;
-    m_vulkanFunctions.vkCreateBuffer = m_device->getDispatcher()->vkCreateBuffer;
-    m_vulkanFunctions.vkCreateImage = m_device->getDispatcher()->vkCreateImage;
-    m_vulkanFunctions.vkDestroyBuffer = m_device->getDispatcher()->vkDestroyBuffer;
-    m_vulkanFunctions.vkDestroyImage = m_device->getDispatcher()->vkDestroyImage;
-    m_vulkanFunctions.vkFlushMappedMemoryRanges = m_device->getDispatcher()->vkFlushMappedMemoryRanges;
-    m_vulkanFunctions.vkFreeMemory = m_device->getDispatcher()->vkFreeMemory;
-    m_vulkanFunctions.vkGetBufferMemoryRequirements2KHR = m_device->getDispatcher()->vkGetBufferMemoryRequirements2KHR;
-    m_vulkanFunctions.vkGetBufferMemoryRequirements = m_device->getDispatcher()->vkGetBufferMemoryRequirements;
-    m_vulkanFunctions.vkGetImageMemoryRequirements2KHR = m_device->getDispatcher()->vkGetImageMemoryRequirements2KHR;
-    m_vulkanFunctions.vkGetImageMemoryRequirements = m_device->getDispatcher()->vkGetImageMemoryRequirements;
-    m_vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR
-        = Context::get().m_instance->getDispatcher()->vkGetPhysicalDeviceMemoryProperties2KHR;
-    m_vulkanFunctions.vkGetPhysicalDeviceMemoryProperties
-        = Context::get().m_instance->getDispatcher()->vkGetPhysicalDeviceMemoryProperties;
-    m_vulkanFunctions.vkGetPhysicalDeviceProperties
-        = Context::get().m_instance->getDispatcher()->vkGetPhysicalDeviceProperties;
-    m_vulkanFunctions.vkInvalidateMappedMemoryRanges = m_device->getDispatcher()->vkInvalidateMappedMemoryRanges;
-    m_vulkanFunctions.vkMapMemory = m_device->getDispatcher()->vkMapMemory;
-    m_vulkanFunctions.vkUnmapMemory = m_device->getDispatcher()->vkUnmapMemory;
-
     VmaAllocatorCreateInfo allocatorInfo = {};
     allocatorInfo.vulkanApiVersion = Context::get().m_applicationInfo.apiVersion;
     allocatorInfo.physicalDevice = **m_physicalDevice;
     allocatorInfo.device = **m_device;
     allocatorInfo.instance = **Context::get().m_instance;
-    allocatorInfo.pVulkanFunctions = &m_vulkanFunctions;
-    m_allocator = std::make_unique<MemoryAllocator>(allocatorInfo);
+    m_allocator = std::make_unique<MemoryAllocator>(allocatorInfo, m_device.get(), Context::get().m_instance.get());
 }
 
 std::vector<vk::raii::CommandBuffer*> Device::getComputeCommandBuffers(size_t count)
