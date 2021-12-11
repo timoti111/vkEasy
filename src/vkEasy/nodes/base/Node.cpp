@@ -30,18 +30,36 @@ void Node::operator()()
         m_graph->m_resourceUsage[usedResource].push_back(this);
 }
 
-void Node::addExecutionBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst)
+void Node::addExecutionBarrier(vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst)
 {
-    std::cout << "Execution barrier from: " << vk::to_string(src) << " to: " << vk::to_string(dst) << std::endl;
-    auto buffers = m_device->getComputeCommandBuffers(1);
+    if (dst == vk::PipelineStageFlagBits::eNoneKHR)
+        return;
+    m_graph->setActualPipelineStage(dst);
+    if (src == vk::PipelineStageFlagBits::eNoneKHR)
+        return;
+
+#ifndef NDEBUG
+    std ::cout << "Adding execution barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst)
+               << " }" << std::endl;
+#endif
+    auto buffers = m_device->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, {}, {});
 }
 
+void Node::addExecutionBarrier(vk::PipelineStageFlagBits dst)
+{
+    addExecutionBarrier(m_graph->getLastPipelineStage(), dst);
+}
+
 void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
     vk::AccessFlagBits srcMask, vk::AccessFlagBits dstMask)
 {
+#ifndef NDEBUG
+    std ::cout << "Adding execution barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst)
+               << " }" << std::endl;
+#endif
     vk::BufferMemoryBarrier bufferBarrier;
     bufferBarrier.setBuffer(buffer)
         .setSize(VK_WHOLE_SIZE)
@@ -49,8 +67,7 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
         .setDstAccessMask(dstMask)
         .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
         .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-    std::cout << "Buffer barrier from: " << vk::to_string(src) << " to: " << vk::to_string(dst) << std::endl;
-    auto buffers = m_device->getComputeCommandBuffers(1);
+    auto buffers = m_device->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, bufferBarrier, {});
@@ -58,9 +75,11 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
 
 void Node::addEvent(std::function<void()> event)
 {
-    std::cout << "Adding event: " << vk::to_string(m_graph->getLastPipelineStage()) << std::endl;
+#ifndef NDEBUG
+    std::cout << "Adding event after { " << vk::to_string(m_graph->getLastPipelineStage()) << " }" << std::endl;
+#endif
     auto vkEvent = m_graph->createEvent(event);
-    auto buffers = m_device->getComputeCommandBuffers(1);
+    auto buffers = m_device->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->setEvent(**vkEvent, m_graph->getLastPipelineStage());
@@ -68,18 +87,14 @@ void Node::addEvent(std::function<void()> event)
 
 void Node::execute()
 {
-    if (m_pipelineStage != vk::PipelineStageFlagBits::eNoneKHR) {
-        auto lastPipelineStage = m_graph->getLastPipelineStage();
-        m_graph->setActualPipelineStage(m_pipelineStage);
-        if (lastPipelineStage != vk::PipelineStageFlagBits::eNoneKHR)
-            addExecutionBarrier(lastPipelineStage, m_pipelineStage);
-    }
-
+    addExecutionBarrier(m_pipelineStage);
     for (auto& usedResource : m_usedResources)
         usedResource->update();
     if (m_preUpdateFunction)
         m_preUpdateFunction();
-    std::cout << "Executing: " << objectName() << std::endl;
+#ifndef NDEBUG
+    std::cout << "Executing { " << objectName() << " }" << std::endl;
+#endif
     update(m_device);
     if (m_postUpdateFunction)
         m_postUpdateFunction();

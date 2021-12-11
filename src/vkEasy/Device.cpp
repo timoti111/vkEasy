@@ -35,30 +35,27 @@ MemoryAllocator* Device::getAllocator()
 
 void Device::findPhysicalDevice()
 {
-    // TODO ALL
-    m_needsGraphicsQueue = false;
-    m_graphicsQueueIndex = std::numeric_limits<size_t>::max();
-    m_needsComputeQueue = true; // TODO
-    m_computeQueueIndex = std::numeric_limits<size_t>::max();
-    m_needsTransferQueue = true; // TODO
-    m_transferQueueIndex = std::numeric_limits<size_t>::max();
-    m_needsPresentQueue = false;
-    m_presentQueueIndex = std::numeric_limits<size_t>::max();
-    // m_surface.reset();
+    m_neededQueues = vk::QueueFlags();
+    m_universalQueueIndex = std::numeric_limits<size_t>::max();
+
     m_requiredExtensionsVkCompatible.clear();
     m_requiredExtensions.clear();
     m_requiredFeatures = vk::PhysicalDeviceFeatures();
-    m_requiredExtensions.emplace(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
-    m_requiredExtensions.emplace(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
-    m_requiredExtensions.emplace(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
-    // if (!m_physicalDevice) {
-    //     std::multimap<int, vk::PhysicalDevice*> candidates;
-    //     for (auto& physicalDevice : vk::easy::Context::get().getPhysicalDevices()) { }
-    // }
-    if (!m_physicalDevice)
-        m_physicalDevice = &vk::easy::Context::get().getPhysicalDevices()[0];
 
-    auto deviceProperties = m_physicalDevice->getProperties();
+    for (auto& node : m_actualGraph->m_nodeOrderGraph)
+        m_neededQueues != node->m_neededQueueTypes;
+
+    if (!m_physicalDevice) {
+        std::multimap<int, vk::raii::PhysicalDevice*> candidates;
+        for (auto& physicalDevice : vk::easy::Context::get().getPhysicalDevices()) {
+            int score = 0;
+            // score GPUs
+            candidates.emplace(score, &physicalDevice);
+        }
+        m_physicalDevice = candidates.rbegin()->second;
+    }
+
+    // auto deviceProperties = m_physicalDevice->getProperties();
     auto deviceExtensions = m_physicalDevice->enumerateDeviceExtensionProperties();
 
     auto addIfExists = [this, &deviceExtensions](const char* extName) {
@@ -73,7 +70,6 @@ void Device::findPhysicalDevice()
     addIfExists(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
     addIfExists(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
 
-    std::cout << "GPU: " << deviceProperties.deviceName.data() << std::endl;
     std::transform(m_requiredExtensions.begin(), m_requiredExtensions.end(),
         std::back_inserter(m_requiredExtensionsVkCompatible),
         [](const std::string& string) -> char const* { return string.c_str(); });
@@ -94,22 +90,10 @@ void Device::initialize()
     int queueIndex = 0;
     for (auto& queueFamilyProperty : queueFamilyProperties) {
         bool useQueue = false;
-        if (m_graphicsQueueIndex == std::numeric_limits<size_t>::max()
-            && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eGraphics && m_needsGraphicsQueue) {
-            m_graphicsQueueIndex = queueIndex;
-            m_needsGraphicsQueue = false;
-            useQueue = true;
-        }
-        if (m_computeQueueIndex == std::numeric_limits<size_t>::max()
-            && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eCompute && m_needsComputeQueue) {
-            m_computeQueueIndex = queueIndex;
-            m_needsComputeQueue = false;
-            useQueue = true;
-        }
-        if (m_transferQueueIndex == std::numeric_limits<size_t>::max()
-            && queueFamilyProperty.queueFlags & vk::QueueFlagBits::eTransfer && m_needsTransferQueue) {
-            m_transferQueueIndex = queueIndex;
-            m_needsTransferQueue = false;
+        if (m_universalQueueIndex == std::numeric_limits<size_t>::max()
+            && (queueFamilyProperty.queueFlags & m_neededQueues) == m_neededQueues) {
+            m_universalQueueIndex = queueIndex;
+            m_neededQueues &= ~queueFamilyProperty.queueFlags;
             useQueue = true;
         }
         // if (m_presentQueueIndex == std::numeric_limits<size_t>::max() &&
@@ -134,7 +118,6 @@ void Device::initialize()
     m_device = std::make_unique<vk::raii::Device>(*m_physicalDevice, deviceCreateInfo);
 
     vk::CommandPoolCreateInfo cmdPoolInfo;
-    cmdPoolInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     for (auto& queue : queueCreateInfos) {
         auto queueData = std::make_unique<QueueData>();
         queueData->queue = std::make_unique<vk::raii::Queue>(*m_device, queue.queueFamilyIndex, 0);
@@ -143,13 +126,22 @@ void Device::initialize()
         m_queues.at(queue.queueFamilyIndex) = std::move(queueData);
     }
 
-    if ((m_needsGraphicsQueue && m_graphicsQueueIndex == std::numeric_limits<size_t>::max())
-        || (m_needsComputeQueue && m_computeQueueIndex == std::numeric_limits<size_t>::max())
-        || (m_needsTransferQueue && m_transferQueueIndex == std::numeric_limits<size_t>::max())
-        || (m_needsPresentQueue && m_presentQueueIndex == std::numeric_limits<size_t>::max()))
+    if (m_neededQueues)
         error(Error::RequirementsNotFulfilled);
 
     initializeVMA();
+
+#ifndef NDEBUG
+    auto properties = m_physicalDevice->getProperties();
+    auto version = properties.apiVersion;
+    std::cout << "GPU instance initialised with: " << std::endl;
+    std::cout << "Name: " << properties.deviceName.data() << std::endl;
+    std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
+              << VK_VERSION_PATCH(version) << std::endl;
+    std::for_each(m_requiredExtensions.begin(), m_requiredExtensions.end(),
+        [](const auto& ext) { std::cout << "Device Extension: " << ext << std::endl; });
+    std::cout << std::endl;
+#endif
 }
 
 void Device::initializeVMA()
@@ -162,24 +154,9 @@ void Device::initializeVMA()
     m_allocator = std::make_unique<MemoryAllocator>(allocatorInfo, m_device.get(), Context::get().m_instance.get());
 }
 
-std::vector<vk::raii::CommandBuffer*> Device::getComputeCommandBuffers(size_t count)
+std::vector<vk::raii::CommandBuffer*> Device::getUniversalCommandBuffers(size_t count)
 {
-    return m_queues.at(m_computeQueueIndex)->getCommandBuffers(count, m_device.get());
-}
-
-std::vector<vk::raii::CommandBuffer*> Device::getGraphicCommandBuffers(size_t count)
-{
-    return m_queues.at(m_graphicsQueueIndex)->getCommandBuffers(count, m_device.get());
-}
-
-std::vector<vk::raii::CommandBuffer*> Device::getPresentCommandBuffers(size_t count)
-{
-    return m_queues.at(m_presentQueueIndex)->getCommandBuffers(count, m_device.get());
-}
-
-std::vector<vk::raii::CommandBuffer*> Device::getTransferCommandBuffers(size_t count)
-{
-    return m_queues.at(m_transferQueueIndex)->getCommandBuffers(count, m_device.get());
+    return m_queues.at(m_universalQueueIndex)->getCommandBuffers(count, m_device.get());
 }
 
 void Device::sendCommandBuffers()
@@ -243,10 +220,10 @@ void Device::QueueData::sendCommandBuffers(vk::raii::Device* device)
     vk::SubmitInfo submitInfo;
     submitInfo.setCommandBuffers(cmdBuffersToSubmit);
 
-    // Submit to the queue
-    vk::FenceCreateInfo fenceInfo;
-    fenceInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
-    fence = std::make_unique<vk::raii::Fence>(*device, fenceInfo);
+    if (!fence) {
+        vk::FenceCreateInfo fenceInfo;
+        fence = std::make_unique<vk::raii::Fence>(*device, fenceInfo);
+    }
     device->resetFences(**fence);
     queue->submit(submitInfo, **fence);
 }
@@ -258,8 +235,7 @@ void Device::QueueData::waitForFence(vk::raii::Device* device)
 
 void Device::QueueData::resetCommandBuffers()
 {
-    for (auto& commandBuffer : allocatedCommandBuffers)
-        commandBuffer->reset();
+    commandPool->reset();
 }
 
 void Device::QueueData::waitIdle()

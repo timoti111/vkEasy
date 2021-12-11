@@ -11,6 +11,7 @@ MemoryReadNode::MemoryReadNode()
     : Node("MemoryReadNode")
 {
     setDataToRead();
+    m_neededQueueTypes = vk::QueueFlagBits::eTransfer;
     m_pipelineStage = vk::PipelineStageFlagBits::eNoneKHR;
 }
 
@@ -33,6 +34,7 @@ void MemoryReadNode::update(Device* device)
         if (m_onDataReady)
             m_onDataReady(getData());
     });
+    addExecutionBarrier(vk::PipelineStageFlagBits::eHost);
 }
 
 void MemoryReadNode::setSrcResource(Resource& resource)

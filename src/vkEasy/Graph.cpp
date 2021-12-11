@@ -25,11 +25,19 @@ void Graph::stopRecording()
     auto resourceUsageCopy = m_resourceUsage;
     for (auto& node : m_nodeOrderGraph)
         m_callGraph.push_back([=]() { node->execute(); });
-    m_device->initialize();
 }
 
 void Graph::run()
 {
+    if (m_device->m_actualGraph != this) {
+        m_device->m_actualGraph = this;
+        m_device->initialize();
+    }
+
+#ifndef NDEBUG
+    std::cout << "Executing graph:" << std::endl;
+#endif
+
     if (m_recording)
         error(Error::RecordingGraph);
 
@@ -48,6 +56,10 @@ void Graph::run()
 
     m_device->waitForFences();
     m_device->resetCommandBuffers();
+
+#ifndef NDEBUG
+    std::cout << std::endl;
+#endif
 }
 
 void Graph::setDevice(Device* device)

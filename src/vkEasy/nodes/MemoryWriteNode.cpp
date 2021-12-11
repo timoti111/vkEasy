@@ -9,6 +9,7 @@ using namespace VK_EASY_NAMESPACE;
 MemoryWriteNode::MemoryWriteNode()
     : Node("MemoryWriteNode")
 {
+    m_neededQueueTypes = vk::QueueFlagBits::eTransfer;
     m_pipelineStage = vk::PipelineStageFlagBits::eHost;
 }
 

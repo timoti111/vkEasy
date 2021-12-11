@@ -8,12 +8,13 @@ using namespace VK_EASY_NAMESPACE;
 BufferCopyNode::BufferCopyNode()
     : Node("BufferCopyNode")
 {
+    m_neededQueueTypes = vk::QueueFlagBits::eTransfer;
     m_pipelineStage = vk::PipelineStageFlagBits::eTransfer;
 }
 
 void BufferCopyNode::update(Device* device)
 {
-    auto transferBuffers = device->getTransferCommandBuffers(1);
+    auto transferBuffers = device->getUniversalCommandBuffers(1);
     if (transferBuffers.empty())
         return;
 

@@ -25,10 +25,7 @@ public:
     void waitForFences();
     void resetCommandBuffers();
     void waitForQueue();
-    std::vector<vk::raii::CommandBuffer*> getPresentCommandBuffers(size_t count);
-    std::vector<vk::raii::CommandBuffer*> getComputeCommandBuffers(size_t count);
-    std::vector<vk::raii::CommandBuffer*> getGraphicCommandBuffers(size_t count);
-    std::vector<vk::raii::CommandBuffer*> getTransferCommandBuffers(size_t count);
+    std::vector<vk::raii::CommandBuffer*> getUniversalCommandBuffers(size_t count);
 
 private:
     Device() = delete;
@@ -58,17 +55,12 @@ private:
         void waitIdle();
     };
     std::vector<std::unique_ptr<QueueData>> m_queues;
-    size_t m_presentQueueIndex;
-    bool m_needsPresentQueue;
-    size_t m_computeQueueIndex;
-    bool m_needsComputeQueue;
-    size_t m_graphicsQueueIndex;
-    bool m_needsGraphicsQueue;
-    size_t m_transferQueueIndex;
-    bool m_needsTransferQueue;
+    size_t m_universalQueueIndex;
+    vk::QueueFlags m_neededQueues;
 
     std::unique_ptr<MemoryAllocator> m_allocator;
     std::vector<std::unique_ptr<Graph>> m_graphs;
+    Graph* m_actualGraph;
     vk::raii::PhysicalDevice* m_physicalDevice = nullptr;
     bool m_initialized = false;
 };

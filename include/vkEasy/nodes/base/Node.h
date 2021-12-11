@@ -31,13 +31,15 @@ protected:
     Graph* getGraph();
     Device* getDevice();
     void addEvent(std::function<void()> event);
-    void addExecutionBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst);
+    void addExecutionBarrier(vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst);
+    void addExecutionBarrier(vk::PipelineStageFlagBits dst);
     void addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
         vk::AccessFlagBits srcMask, vk::AccessFlagBits dstMask);
     virtual void update(Device* device) = 0;
 
     Node* m_nextNode;
     std::vector<Node*> m_dependantNodes;
+    vk::QueueFlags m_neededQueueTypes;
     vk::PipelineStageFlagBits m_pipelineStage;
 
     std::function<void()> m_preUpdateFunction;

@@ -21,21 +21,19 @@ void Context::initialize()
 
 #ifndef NDEBUG
     if (std::find_if(layerProperties.begin(), layerProperties.end(),
-            [](vk::LayerProperties const& lp) { return (strcmp("VK_LAYER_KHRONOS_validation", lp.layerName) == 0); })
+            [](const auto& lp) { return (strcmp("VK_LAYER_KHRONOS_validation", lp.layerName) == 0); })
         != layerProperties.end()) {
         context.m_layers.insert("VK_LAYER_KHRONOS_validation");
     }
     if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
-            [](vk::ExtensionProperties const& ep) {
-                return (strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, ep.extensionName) == 0);
-            })
+            [](const auto& ep) { return (strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, ep.extensionName) == 0); })
         != extensionProperties.end()) {
         context.m_extensions.insert(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
     }
 #endif
 
     if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
-            [](vk::ExtensionProperties const& ep) {
+            [](const auto& ep) {
                 return (strcmp(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, ep.extensionName) == 0);
             })
         != extensionProperties.end()) {
@@ -45,7 +43,7 @@ void Context::initialize()
     std::set<std::string> supportedExtensionSet;
     std::transform(extensionProperties.begin(), extensionProperties.end(),
         std::inserter(supportedExtensionSet, supportedExtensionSet.end()),
-        [](const vk::ExtensionProperties& ext) -> std::string { return std::string(ext.extensionName.data()); });
+        [](const auto& ext) -> std::string { return std::string(ext.extensionName.data()); });
 
     std::vector<std::string> unsupportedExtensions(context.m_extensions.size());
     auto it = std::set_difference(context.m_extensions.begin(), context.m_extensions.end(),
@@ -55,7 +53,7 @@ void Context::initialize()
     std::set<std::string> supportedLayerSet;
     std::transform(layerProperties.begin(), layerProperties.end(),
         std::inserter(supportedLayerSet, supportedLayerSet.end()),
-        [](const vk::LayerProperties& layer) -> std::string { return std::string(layer.layerName.data()); });
+        [](const auto& layer) -> std::string { return std::string(layer.layerName.data()); });
 
     std::vector<std::string> unsupportedLayers(context.m_layers.size());
     it = std::set_difference(context.m_layers.begin(), context.m_layers.end(), supportedLayerSet.begin(),
@@ -63,19 +61,19 @@ void Context::initialize()
     unsupportedLayers.resize(it - unsupportedLayers.begin());
 
     std::for_each(unsupportedExtensions.begin(), unsupportedExtensions.end(),
-        [](const std::string& ext) { std::cout << "Unsupported instance extension: " << ext << std::endl; });
+        [](const auto& ext) { std::cout << "Unsupported instance extension: " << ext << std::endl; });
     std::for_each(unsupportedLayers.begin(), unsupportedLayers.end(),
-        [](const std::string& ext) { std::cout << "Unsupported instance layer: " << ext << std::endl; });
+        [](const auto& ext) { std::cout << "Unsupported instance layer: " << ext << std::endl; });
     if (!unsupportedExtensions.empty() || !unsupportedLayers.empty())
         context.error(Error::RequirementsNotFulfilled);
 
     std::vector<char const*> extensions;
     std::transform(context.m_extensions.begin(), context.m_extensions.end(), std::back_inserter(extensions),
-        [](const std::string& string) -> char const* { return string.c_str(); });
+        [](const auto& string) -> char const* { return string.c_str(); });
 
     std::vector<char const*> layers;
     std::transform(context.m_layers.begin(), context.m_layers.end(), std::back_inserter(layers),
-        [](const std::string& string) -> char const* { return string.c_str(); });
+        [](const auto& string) -> char const* { return string.c_str(); });
 
     context.m_instanceCreateInfo.setPApplicationInfo(&context.m_applicationInfo)
         .setPEnabledExtensionNames(extensions)
@@ -106,10 +104,11 @@ void Context::initialize()
     std::cout << "Vulkan instance initialised with: " << std::endl;
     std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
               << VK_VERSION_PATCH(version) << std::endl;
-    std::for_each(context.m_extensions.begin(), context.m_extensions.end(),
-        [](const std::string& ext) { std::cout << "Extension: " << ext << std::endl; });
     std::for_each(context.m_layers.begin(), context.m_layers.end(),
-        [](const std::string& ext) { std::cout << "Layer: " << ext << std::endl; });
+        [](const auto& ext) { std::cout << "Instance Layer: " << ext << std::endl; });
+    std::for_each(context.m_extensions.begin(), context.m_extensions.end(),
+        [](const auto& ext) { std::cout << "Instance Extension: " << ext << std::endl; });
+    std::cout << std::endl;
 #endif
 
     context.m_physicalDevices = std::make_unique<vk::raii::PhysicalDevices>(*context.m_instance);

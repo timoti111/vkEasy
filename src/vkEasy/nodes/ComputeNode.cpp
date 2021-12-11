@@ -8,6 +8,7 @@ using namespace VK_EASY_NAMESPACE;
 ComputeNode::ComputeNode()
     : PipelineNode("ComputeNode")
 {
+    m_neededQueueTypes = vk::QueueFlagBits::eCompute;
     m_pipelineStage = vk::PipelineStageFlagBits::eComputeShader;
     m_shaderStage = createShaderStage(vk::ShaderStageFlagBits::eCompute);
 }
@@ -16,7 +17,7 @@ void ComputeNode::update(Device* device)
 {
     m_basePipelineUpdateFunction(device);
 
-    auto computeBuffers = device->getComputeCommandBuffers(1);
+    auto computeBuffers = device->getUniversalCommandBuffers(1);
     if (computeBuffers.empty())
         return;
 
