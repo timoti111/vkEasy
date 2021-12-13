@@ -82,7 +82,7 @@ void Node::addEvent(std::function<void()> event)
     auto buffers = m_device->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
-    buffers[0]->setEvent(**vkEvent, m_graph->getLastPipelineStage());
+    buffers[0]->setEvent(**vkEvent, vk::PipelineStageFlagBits::eAllCommands);
 }
 
 void Node::execute()
@@ -90,14 +90,10 @@ void Node::execute()
     addExecutionBarrier(m_pipelineStage);
     for (auto& usedResource : m_usedResources)
         usedResource->update();
-    if (m_preUpdateFunction)
-        m_preUpdateFunction();
 #ifndef NDEBUG
     std::cout << "Executing { " << objectName() << " }" << std::endl;
 #endif
     update(m_device);
-    if (m_postUpdateFunction)
-        m_postUpdateFunction();
 }
 
 Graph* Node::getGraph()

@@ -63,6 +63,7 @@ int main()
     graph.stopRecording();
 
     graph.run();
+    device.waitForQueue();
 
     std::cout << "Compute input:" << std::endl;
     for (auto& v : computeInput)

@@ -42,9 +42,6 @@ protected:
     vk::QueueFlags m_neededQueueTypes;
     vk::PipelineStageFlagBits m_pipelineStage;
 
-    std::function<void()> m_preUpdateFunction;
-    std::function<void()> m_postUpdateFunction;
-
 private:
     void execute();
     void setGraph(Graph* graph);

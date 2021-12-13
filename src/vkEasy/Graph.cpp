@@ -54,9 +54,6 @@ void Graph::run()
         event.action();
     }
 
-    m_device->waitForFences();
-    m_device->resetCommandBuffers();
-
 #ifndef NDEBUG
     std::cout << std::endl;
 #endif
