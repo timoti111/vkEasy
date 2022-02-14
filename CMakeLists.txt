@@ -25,7 +25,11 @@ include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extras/VulkanMemoryAllocator/in
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
     add_definitions(-DNOMINMAX -DVK_USE_PLATFORM_WIN32_KHR)
 elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
-    add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+    if (DEFINED ENV{WAYLAND_DISPLAY})
+        add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
+    else()
+        add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+    endif()
 else()
     message(FATAL_ERROR, "Vulkan-Hpp: unhandled platform for samples!")
 endif()
@@ -35,6 +39,7 @@ set(VK_EASY_SOURCES
     "src/vkEasy/nodes/base/PipelineNode.cpp"
     "src/vkEasy/nodes/BufferCopyNode.cpp"
     "src/vkEasy/nodes/ComputeNode.cpp"
+    "src/vkEasy/nodes/GraphicsNode.cpp"
     "src/vkEasy/nodes/MemoryReadNode.cpp"
     "src/vkEasy/nodes/MemoryWriteNode.cpp"
     "src/vkEasy/resources/base/Buffer.cpp"
@@ -45,16 +50,19 @@ set(VK_EASY_SOURCES
     "src/vkEasy/Context.cpp"
     "src/vkEasy/Device.cpp"
     "src/vkEasy/Error.cpp"
+    "src/vkEasy/GLFWWindow.cpp"
     "src/vkEasy/global.cpp"
     "src/vkEasy/Graph.cpp"
     "src/vkEasy/MemoryAllocator.cpp"
     "src/vkEasy/ShaderStage.cpp"
+    "src/vkEasy/WSI.cpp"
 )
 set(VK_EASY_INCLUDES
     "include/vkEasy/nodes/base/Node.h"
     "include/vkEasy/nodes/base/PipelineNode.h"
     "include/vkEasy/nodes/BufferCopyNode.h"
     "include/vkEasy/nodes/ComputeNode.h"
+    "include/vkEasy/nodes/GraphicsNode.h"
     "include/vkEasy/nodes/MemoryReadNode.h"
     "include/vkEasy/nodes/MemoryWriteNode.h"
     "include/vkEasy/resources/base/Buffer.h"
@@ -65,13 +73,16 @@ set(VK_EASY_INCLUDES
     "include/vkEasy/Context.h"
     "include/vkEasy/Device.h"
     "include/vkEasy/Error.h"
+    "include/vkEasy/GLFWWindow.h"
     "include/vkEasy/global.h"
     "include/vkEasy/Graph.h"
     "include/vkEasy/MemoryAllocator.h"
     "include/vkEasy/ShaderStage.h"
     "include/vkEasy/Utils.h"
+    "include/vkEasy/WSI.h"
 )
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_DEBUG_POSTFIX "d" CACHE STRING "add a postfix, usually d on windows")
 set(CMAKE_RELEASE_POSTFIX "" CACHE STRING "add a postfix, usually empty on windows")
 set(CMAKE_RELWITHDEBINFO_POSTFIX "rd" CACHE STRING "add a postfix, usually empty on windows")
@@ -99,3 +110,4 @@ set(SHADERC_SKIP_TESTS ON)
 set(SHADERC_SKIP_EXAMPLES ON)
 add_subdirectory(extras)
 add_subdirectory(examples)
+target_link_libraries(${PROJECT_NAME} glfw)

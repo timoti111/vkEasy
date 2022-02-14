@@ -16,3 +16,9 @@
 [submodule "extras/SPIRV-Headers"]
 	path = extras/SPIRV-Headers
 	url = git@github.com:KhronosGroup/SPIRV-Headers.git
+[submodule "extras/glslang"]
+	path = extras/glslang
+	url = git@github.com:KhronosGroup/glslang.git
+[submodule "extras/glfw"]
+	path = extras/glfw
+	url = git@github.com:glfw/glfw.git
