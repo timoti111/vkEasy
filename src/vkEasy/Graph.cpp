@@ -86,3 +86,48 @@ void Graph::setActualPipelineStage(vk::PipelineStageFlagBits stage)
 {
     m_lastPipelineStage = stage;
 }
+
+GraphicsNode& Graph::createGraphicsNode()
+{
+    return this->createNode<GraphicsNode>();
+}
+
+ComputeNode& Graph::createComputeNode()
+{
+    return this->createNode<ComputeNode>();
+}
+
+BufferCopyNode& Graph::createBufferCopyNode()
+{
+    return this->createNode<BufferCopyNode>();
+}
+
+MemoryReadNode& Graph::createMemoryReadNode()
+{
+    return this->createNode<MemoryReadNode>();
+}
+
+MemoryWriteNode& Graph::createMemoryWriteNode()
+{
+    return this->createNode<MemoryWriteNode>();
+}
+
+PresentNode& Graph::createPresentNode()
+{
+    return this->createNode<PresentNode>();
+}
+
+StagingBuffer& Graph::createStagingBuffer()
+{
+    return this->createResource<StagingBuffer>();
+}
+
+StorageBuffer& Graph::createStorageBuffer()
+{
+    return this->createResource<StorageBuffer>();
+}
+
+UniformBuffer& Graph::createUniformBuffer()
+{
+    return this->createResource<UniformBuffer>();
+}

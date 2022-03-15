@@ -29,9 +29,9 @@ public:
 protected:
     Resource() = default;
     void setMemoryUsage(VmaMemoryUsage flag);
-    virtual void update() = 0;
     virtual void create() = 0;
-    virtual bool exists() = 0;
+    virtual void update();
+    virtual bool exists();
 
     virtual void setOptimization(OptimizationFlags optimization);
 
@@ -41,6 +41,7 @@ protected:
     Device* m_device = nullptr;
     vk::DescriptorType m_descriptorType;
     bool m_isBuffer = false;
+    bool m_recreateResource = false;
 
     std::unique_ptr<MemoryAllocator::Resource> m_vmaResource;
 

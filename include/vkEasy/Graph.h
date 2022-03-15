@@ -2,8 +2,8 @@
 
 #include <vkEasy/Error.h>
 #include <vkEasy/global.h>
-#include <vkEasy/nodes/base/Node.h>
-#include <vkEasy/resources/base/Resource.h>
+#include <vkEasy/nodes/Nodes.h>
+#include <vkEasy/resources/Resources.h>
 
 namespace VK_EASY_NAMESPACE {
 class Device;
@@ -28,6 +28,12 @@ public:
         m_nodes.back()->setGraph(this);
         return *dynamic_cast<T*>(m_nodes.back().get());
     }
+    GraphicsNode& createGraphicsNode();
+    ComputeNode& createComputeNode();
+    BufferCopyNode& createBufferCopyNode();
+    MemoryReadNode& createMemoryReadNode();
+    MemoryWriteNode& createMemoryWriteNode();
+    PresentNode& createPresentNode();
 
     template <class T>
     requires(std::is_base_of_v<Resource, T> && !std::is_same_v<Resource, T>) T& createResource(
@@ -38,6 +44,9 @@ public:
         m_resources.back()->setOptimization(optimization);
         return *dynamic_cast<T*>(m_resources.back().get());
     }
+    StagingBuffer& createStagingBuffer();
+    StorageBuffer& createStorageBuffer();
+    UniformBuffer& createUniformBuffer();
 
 private:
     Graph();

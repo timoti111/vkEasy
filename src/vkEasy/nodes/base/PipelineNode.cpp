@@ -11,8 +11,14 @@ PipelineNode::PipelineNode(const std::string& nodeName)
         if (m_pipelineRebuild)
             build(device);
 
-        if (m_needsRebuild || m_pipelineRebuild)
+        if (m_needsRebuild || m_pipelineRebuild) {
+            vk::PipelineCacheCreateInfo pipelineCacheCreateInfo;
+            m_pipelineCache
+                = std::make_unique<vk::raii::PipelineCache>(*device->getLogicalDevice(), pipelineCacheCreateInfo);
+            for (auto& [key, element] : m_stages)
+                element->update(device);
             buildPipeline(device);
+        }
 
         m_needsRebuild = false;
         m_pipelineRebuild = false;
@@ -120,9 +126,10 @@ Descriptor* PipelineNode::createDescriptor(std::vector<Resource*> resources, siz
     return &m_layout[set][binding];
 }
 
-ShaderStage* PipelineNode::createShaderStage(const vk::ShaderStageFlagBits& stage)
+ShaderStage* PipelineNode::getShaderStage(const vk::ShaderStageFlagBits& stage)
 {
-    m_stages[stage] = std::unique_ptr<ShaderStage>(new ShaderStage(stage, this));
+    if (!m_stages[stage])
+        m_stages[stage] = std::unique_ptr<ShaderStage>(new ShaderStage(stage, this));
     return m_stages[stage].get();
 }
 

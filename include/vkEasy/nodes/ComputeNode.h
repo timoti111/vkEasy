@@ -10,7 +10,7 @@ public:
     ComputeNode(ComputeNode const&) = delete;
     void operator=(ComputeNode const&) = delete;
 
-    ShaderStage& getShaderStage();
+    ShaderStage& getComputeShaderStage();
     void setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ);
 
 protected:
@@ -19,9 +19,7 @@ protected:
     void buildPipeline(vk::easy::Device* device);
 
 private:
-    ShaderStage* m_shaderStage;
     vk::ComputePipelineCreateInfo m_computePipelineCreateInfo;
-    std::unique_ptr<vk::raii::PipelineCache> m_pipelineCache;
     std::array<size_t, 3> m_dispatchSize;
 };
 } // namespace VK_EASY_NAMESPACE

@@ -13,6 +13,7 @@ struct Descriptor;
 class ShaderStage : public Errorable {
     friend class PipelineNode;
     friend class ComputeNode;
+    friend class GraphicsNode;
 
 public:
     ShaderStage(ShaderStage const&) = delete;

@@ -1,26 +1,26 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(vkGraphicsTesting)
+project(vkEasyGraphics)
 
-file(GLOB_RECURSE vkEasyTesting_SOURCES
+file(GLOB_RECURSE vkEasyGraphics_SOURCES
     "*.cpp"
     "*.c"
 )
 
-file(GLOB_RECURSE vkEasyTesting_HEADERS
+file(GLOB_RECURSE vkEasyGraphics_HEADERS
     "*.hpp"
     "*.h"
 )
 
-file(GLOB_RECURSE vkEasyTesting_SHADERS
+file(GLOB_RECURSE vkEasyGraphics_SHADERS
     "*.vert"
     "*.frag"
 )
 
-source_group(headers FILES ${vkEasyTesting_HEADERS})
-source_group(sources FILES ${vkEasyTesting_SOURCES})
+source_group(headers FILES ${vkEasyGraphics_HEADERS})
+source_group(sources FILES ${vkEasyGraphics_SOURCES})
 
-add_executable(${PROJECT_NAME} ${vkEasyTesting_HEADERS} ${vkEasyTesting_SOURCES} ${vkEasyTesting_SHADERS})
+add_executable(${PROJECT_NAME} ${vkEasyGraphics_HEADERS} ${vkEasyGraphics_SOURCES} ${vkEasyGraphics_SHADERS})
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.vert" "${CMAKE_CURRENT_BINARY_DIR}/shader.vert" COPYONLY)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.frag" "${CMAKE_CURRENT_BINARY_DIR}/shader.frag" COPYONLY)
 

@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(vkComputeTest)
+project(vkCompute)
 
-file(GLOB_RECURSE vkComputeTest_SOURCES
+file(GLOB_RECURSE vkCompute_SOURCES
     "*.cpp"
     "*.c"
 )
 
-file(GLOB_RECURSE vkComputeTest_HEADERS
+file(GLOB_RECURSE vkCompute_HEADERS
     "*.hpp"
     "*.h"
 )
@@ -21,10 +21,10 @@ else()
 endif()
 
 
-source_group(headers FILES ${vkComputeTest_HEADERS})
-source_group(sources FILES ${vkComputeTest_SOURCES})
+source_group(headers FILES ${vkCompute_HEADERS})
+source_group(sources FILES ${vkCompute_SOURCES})
 
-add_executable(${PROJECT_NAME} ${vkComputeTest_HEADERS} ${vkComputeTest_SOURCES})
+add_executable(${PROJECT_NAME} ${vkCompute_HEADERS} ${vkCompute_SOURCES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1)
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)

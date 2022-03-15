@@ -18,7 +18,7 @@ protected:
     void setData(const std::vector<uint8_t>& data);
     void getData(std::vector<uint8_t>& data, size_t offset = 0);
 
-    virtual void update() override;
+    void update() override;
 
     std::vector<uint8_t> m_data;
     bool m_updateData = false;

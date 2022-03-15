@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <iostream>
 #include <vkEasy/Context.h>
 
@@ -15,49 +16,30 @@ void Context::initialize()
     if (context.m_instance)
         context.error(Error::MultipleInitializations);
 
-    std::vector<vk::LayerProperties> layerProperties = context.m_context->enumerateInstanceLayerProperties();
-    std::vector<vk::ExtensionProperties> extensionProperties
-        = context.m_context->enumerateInstanceExtensionProperties();
-
 #ifndef NDEBUG
-    if (std::find_if(layerProperties.begin(), layerProperties.end(),
-            [](const auto& lp) { return (strcmp("VK_LAYER_KHRONOS_validation", lp.layerName) == 0); })
-        != layerProperties.end()) {
-        context.m_layers.insert("VK_LAYER_KHRONOS_validation");
-    }
-    if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
-            [](const auto& ep) { return (strcmp(VK_EXT_DEBUG_UTILS_EXTENSION_NAME, ep.extensionName) == 0); })
-        != extensionProperties.end()) {
-        context.m_extensions.insert(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-    }
+    context.addLayer("VK_LAYER_KHRONOS_validation");
+    context.addExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 #endif
 
-    if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
-            [](const auto& ep) {
-                return (strcmp(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, ep.extensionName) == 0);
-            })
-        != extensionProperties.end()) {
-        context.m_extensions.insert(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-    }
+    context.addExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
+    //     context.addExtension(VK_KHR_SURFACE_EXTENSION_NAME);
 
-    std::set<std::string> supportedExtensionSet;
-    std::transform(extensionProperties.begin(), extensionProperties.end(),
-        std::inserter(supportedExtensionSet, supportedExtensionSet.end()),
-        [](const auto& ext) -> std::string { return std::string(ext.extensionName.data()); });
+    // #ifdef VK_USE_PLATFORM_WAYLAND_KHR
+    //     context.addExtension(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
+    // #elif VK_USE_PLATFORM_XCB_KHR
+    //     context.addExtension(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
+    // #elif VK_USE_PLATFORM_WIN32_KHR
+    //     context.addExtension(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
+    // #endif
 
     std::vector<std::string> unsupportedExtensions(context.m_extensions.size());
     auto it = std::set_difference(context.m_extensions.begin(), context.m_extensions.end(),
-        supportedExtensionSet.begin(), supportedExtensionSet.end(), unsupportedExtensions.begin());
+        context.m_supportedExtensions.begin(), context.m_supportedExtensions.end(), unsupportedExtensions.begin());
     unsupportedExtensions.resize(it - unsupportedExtensions.begin());
 
-    std::set<std::string> supportedLayerSet;
-    std::transform(layerProperties.begin(), layerProperties.end(),
-        std::inserter(supportedLayerSet, supportedLayerSet.end()),
-        [](const auto& layer) -> std::string { return std::string(layer.layerName.data()); });
-
     std::vector<std::string> unsupportedLayers(context.m_layers.size());
-    it = std::set_difference(context.m_layers.begin(), context.m_layers.end(), supportedLayerSet.begin(),
-        supportedLayerSet.end(), unsupportedLayers.begin());
+    it = std::set_difference(context.m_layers.begin(), context.m_layers.end(), context.m_supportedLayers.begin(),
+        context.m_supportedLayers.end(), unsupportedLayers.begin());
     unsupportedLayers.resize(it - unsupportedLayers.begin());
 
     std::for_each(unsupportedExtensions.begin(), unsupportedExtensions.end(),
@@ -123,6 +105,15 @@ Context::Context()
         .setEngineVersion(VK_MAKE_VERSION(1, 0, 0))
         .setPApplicationName("vkEasy")
         .setPEngineName("vkEasy");
+
+    auto extensionProperties = m_context->enumerateInstanceExtensionProperties();
+    std::transform(extensionProperties.begin(), extensionProperties.end(),
+        std::inserter(m_supportedExtensions, m_supportedExtensions.end()),
+        [](const auto& ext) -> std::string { return std::string(ext.extensionName.data()); });
+    auto layerProperties = m_context->enumerateInstanceLayerProperties();
+    std::transform(layerProperties.begin(), layerProperties.end(),
+        std::inserter(m_supportedLayers, m_supportedLayers.end()),
+        [](const auto& layer) -> std::string { return std::string(layer.layerName.data()); });
 }
 
 std::set<std::string> Context::extensions() const
@@ -152,27 +143,40 @@ void Context::addExtension(const std::string& extension)
     if (m_instance)
         error(Error::CreationInfoModifyAfterInitialization);
     m_extensions.insert(extension);
+    // std::vector<vk::ExtensionProperties> extensionProperties = m_context->enumerateInstanceExtensionProperties();
+    // if (std::find_if(extensionProperties.begin(), extensionProperties.end(),
+    //         [&extension](const auto& ep) { return (strcmp(extension.c_str(), ep.extensionName) == 0); })
+    //     != extensionProperties.end()) {
+    //     m_extensions.insert(extension);
+    // }
 }
 
-void Context::addExtensions(std::vector<std::string> extensions)
+void Context::addExtensions(const std::vector<std::string>& extensions)
 {
     if (m_instance)
         error(Error::CreationInfoModifyAfterInitialization);
-    std::copy(extensions.begin(), extensions.end(), std::inserter(m_extensions, m_extensions.end()));
+    std::for_each(extensions.begin(), extensions.end(), [this](const auto& extension) { addExtension(extension); });
 }
 
 void Context::addLayer(const std::string& layer)
 {
+
     if (m_instance)
         error(Error::CreationInfoModifyAfterInitialization);
     m_layers.insert(layer);
+    // std::vector<vk::LayerProperties> layerProperties = m_context->enumerateInstanceLayerProperties();
+    // if (std::find_if(layerProperties.begin(), layerProperties.end(),
+    //         [&layer](const auto& lp) { return (strcmp(layer.c_str(), lp.layerName) == 0); })
+    //     != layerProperties.end()) {
+    //     m_layers.insert(layer);
+    // }
 }
 
-void Context::addLayers(std::vector<std::string> layers)
+void Context::addLayers(const std::vector<std::string>& layers)
 {
     if (m_instance)
         error(Error::CreationInfoModifyAfterInitialization);
-    std::copy(layers.begin(), layers.end(), std::inserter(m_layers, m_layers.end()));
+    std::for_each(layers.begin(), layers.end(), [this](const auto& layer) { addLayer(layer); });
 }
 
 VkBool32 Context::debugUtilsMessengerCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -231,4 +235,8 @@ Device& Context::createDevice(vk::raii::PhysicalDevice* device)
 {
     m_devices.push_back(std::unique_ptr<Device>(new Device(device)));
     return *m_devices.back().get();
+}
+vk::raii::Instance& Context::instance()
+{
+    return *m_instance;
 }

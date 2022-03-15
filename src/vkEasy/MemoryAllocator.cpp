@@ -6,30 +6,41 @@ MemoryAllocator::MemoryAllocator(
     const VmaAllocatorCreateInfo& info, vk::raii::Device* device, vk::raii::Instance* instance)
 {
     m_vulkanFunctions = VmaVulkanFunctions();
-    m_vulkanFunctions.vkAllocateMemory = device->getDispatcher()->vkAllocateMemory;
-    m_vulkanFunctions.vkBindBufferMemory2KHR = device->getDispatcher()->vkBindBufferMemory2KHR;
-    m_vulkanFunctions.vkBindBufferMemory = device->getDispatcher()->vkBindBufferMemory;
-    m_vulkanFunctions.vkBindImageMemory2KHR = device->getDispatcher()->vkBindImageMemory2KHR;
-    m_vulkanFunctions.vkBindImageMemory = device->getDispatcher()->vkBindImageMemory;
-    m_vulkanFunctions.vkCmdCopyBuffer = device->getDispatcher()->vkCmdCopyBuffer;
-    m_vulkanFunctions.vkCreateBuffer = device->getDispatcher()->vkCreateBuffer;
-    m_vulkanFunctions.vkCreateImage = device->getDispatcher()->vkCreateImage;
-    m_vulkanFunctions.vkDestroyBuffer = device->getDispatcher()->vkDestroyBuffer;
-    m_vulkanFunctions.vkDestroyImage = device->getDispatcher()->vkDestroyImage;
-    m_vulkanFunctions.vkFlushMappedMemoryRanges = device->getDispatcher()->vkFlushMappedMemoryRanges;
-    m_vulkanFunctions.vkFreeMemory = device->getDispatcher()->vkFreeMemory;
-    m_vulkanFunctions.vkGetBufferMemoryRequirements2KHR = device->getDispatcher()->vkGetBufferMemoryRequirements2KHR;
-    m_vulkanFunctions.vkGetBufferMemoryRequirements = device->getDispatcher()->vkGetBufferMemoryRequirements;
-    m_vulkanFunctions.vkGetImageMemoryRequirements2KHR = device->getDispatcher()->vkGetImageMemoryRequirements2KHR;
-    m_vulkanFunctions.vkGetImageMemoryRequirements = device->getDispatcher()->vkGetImageMemoryRequirements;
-    m_vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR
-        = instance->getDispatcher()->vkGetPhysicalDeviceMemoryProperties2KHR;
     m_vulkanFunctions.vkGetPhysicalDeviceMemoryProperties
         = instance->getDispatcher()->vkGetPhysicalDeviceMemoryProperties;
     m_vulkanFunctions.vkGetPhysicalDeviceProperties = instance->getDispatcher()->vkGetPhysicalDeviceProperties;
-    m_vulkanFunctions.vkInvalidateMappedMemoryRanges = device->getDispatcher()->vkInvalidateMappedMemoryRanges;
+    m_vulkanFunctions.vkAllocateMemory = device->getDispatcher()->vkAllocateMemory;
+    m_vulkanFunctions.vkFreeMemory = device->getDispatcher()->vkFreeMemory;
     m_vulkanFunctions.vkMapMemory = device->getDispatcher()->vkMapMemory;
     m_vulkanFunctions.vkUnmapMemory = device->getDispatcher()->vkUnmapMemory;
+    m_vulkanFunctions.vkFlushMappedMemoryRanges = device->getDispatcher()->vkFlushMappedMemoryRanges;
+    m_vulkanFunctions.vkInvalidateMappedMemoryRanges = device->getDispatcher()->vkInvalidateMappedMemoryRanges;
+    m_vulkanFunctions.vkBindBufferMemory = device->getDispatcher()->vkBindBufferMemory;
+    m_vulkanFunctions.vkBindImageMemory = device->getDispatcher()->vkBindImageMemory;
+    m_vulkanFunctions.vkGetBufferMemoryRequirements = device->getDispatcher()->vkGetBufferMemoryRequirements;
+    m_vulkanFunctions.vkGetImageMemoryRequirements = device->getDispatcher()->vkGetImageMemoryRequirements;
+    m_vulkanFunctions.vkCreateBuffer = device->getDispatcher()->vkCreateBuffer;
+    m_vulkanFunctions.vkDestroyBuffer = device->getDispatcher()->vkDestroyBuffer;
+    m_vulkanFunctions.vkCreateImage = device->getDispatcher()->vkCreateImage;
+    m_vulkanFunctions.vkDestroyImage = device->getDispatcher()->vkDestroyImage;
+    m_vulkanFunctions.vkCmdCopyBuffer = device->getDispatcher()->vkCmdCopyBuffer;
+#if VMA_DEDICATED_ALLOCATION || VMA_VULKAN_VERSION >= 1001000
+    m_vulkanFunctions.vkGetBufferMemoryRequirements2KHR = device->getDispatcher()->vkGetBufferMemoryRequirements2KHR;
+    m_vulkanFunctions.vkGetImageMemoryRequirements2KHR = device->getDispatcher()->vkGetImageMemoryRequirements2KHR;
+#endif
+#if VMA_BIND_MEMORY2 || VMA_VULKAN_VERSION >= 1001000
+    m_vulkanFunctions.vkBindBufferMemory2KHR = device->getDispatcher()->vkBindBufferMemory2KHR;
+    m_vulkanFunctions.vkBindImageMemory2KHR = device->getDispatcher()->vkBindImageMemory2KHR;
+#endif
+#if VMA_MEMORY_BUDGET || VMA_VULKAN_VERSION >= 1001000
+    m_vulkanFunctions.vkGetPhysicalDeviceMemoryProperties2KHR
+        = instance->getDispatcher()->vkGetPhysicalDeviceMemoryProperties2KHR;
+#endif
+#if VMA_VULKAN_VERSION >= 1003000
+    m_vulkanFunctions.vkGetDeviceBufferMemoryRequirements
+        = device->getDispatcher()->vkGetDeviceBufferMemoryRequirements;
+    m_vulkanFunctions.vkGetDeviceImageMemoryRequirements = device->getDispatcher()->vkGetDeviceImageMemoryRequirements;
+#endif
 
     m_allocatorInfo = info;
     m_allocatorInfo.pVulkanFunctions = &m_vulkanFunctions;

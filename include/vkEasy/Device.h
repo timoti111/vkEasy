@@ -1,8 +1,8 @@
 #pragma once
 
-#include <set>
-#include <span>
+#include "vkEasy/SwapChain.h"
 #include <vkEasy/Error.h>
+#include <vkEasy/GLFWWindow.h>
 #include <vkEasy/Graph.h>
 #include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/global.h>
@@ -11,10 +11,20 @@ namespace VK_EASY_NAMESPACE {
 class Device : public Errorable {
     friend class Context;
     friend class Graph;
+    friend class SwapChain;
 
 public:
     Device(Device const&) = delete;
     void operator=(Device const&) = delete;
+
+    template <class T>
+    requires(std::is_base_of_v<WSI, T> && !std::is_same_v<WSI, T>) T& createWindow(
+        uint32_t width, uint32_t height, const std::string& title)
+    {
+        m_windows.push_back(std::unique_ptr<T>(new T(width, height, title, this)));
+        return *dynamic_cast<T*>(m_windows.back().get());
+    }
+    GLFWWindow& createGLFWWindow(uint32_t width, uint32_t height, const std::string& title);
 
     Graph& createGraph();
     vk::raii::Device* getLogicalDevice();
@@ -33,6 +43,8 @@ private:
     void findPhysicalDevice();
     void initialize();
     void initializeVMA();
+
+    std::vector<std::unique_ptr<WSI>> m_windows;
 
     std::vector<char const*> m_requiredExtensionsVkCompatible;
     std::set<std::string> m_requiredExtensions;

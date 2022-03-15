@@ -43,13 +43,18 @@ void Device::findPhysicalDevice()
     m_requiredFeatures = vk::PhysicalDeviceFeatures();
 
     for (auto& node : m_actualGraph->m_nodeOrderGraph)
-        m_neededQueues != node->m_neededQueueTypes;
+        m_neededQueues = m_neededQueues | node->m_neededQueueTypes;
 
     if (!m_physicalDevice) {
         std::multimap<int, vk::raii::PhysicalDevice*> candidates;
         for (auto& physicalDevice : vk::easy::Context::get().getPhysicalDevices()) {
             int score = 0;
             // score GPUs
+            if (!m_windows.empty()) {
+                auto queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
+                for (size_t queueIndex = 0; queueIndex < queueFamilyProperties.size(); queueIndex++)
+                    score += physicalDevice.getSurfaceSupportKHR(queueIndex, *m_windows[0]->m_surface) ? 1000 : 0;
+            }
             candidates.emplace(score, &physicalDevice);
         }
         m_physicalDevice = candidates.rbegin()->second;
@@ -69,6 +74,10 @@ void Device::findPhysicalDevice()
     addIfExists(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
     addIfExists(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
     addIfExists(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
+
+    if (!m_windows.empty()) {
+        addIfExists(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
+    }
 
     std::transform(m_requiredExtensions.begin(), m_requiredExtensions.end(),
         std::back_inserter(m_requiredExtensionsVkCompatible),
@@ -90,22 +99,19 @@ void Device::initialize()
     int queueIndex = 0;
     for (auto& queueFamilyProperty : queueFamilyProperties) {
         bool useQueue = false;
-        if (m_universalQueueIndex == std::numeric_limits<size_t>::max()
-            && (queueFamilyProperty.queueFlags & m_neededQueues) == m_neededQueues) {
+        if ((queueFamilyProperty.queueFlags & m_neededQueues) == m_neededQueues) {
+            if (!m_windows.empty() && !m_physicalDevice->getSurfaceSupportKHR(queueIndex, *m_windows[0]->m_surface))
+                continue;
             m_universalQueueIndex = queueIndex;
             m_neededQueues &= ~queueFamilyProperty.queueFlags;
             useQueue = true;
         }
-        // if (m_presentQueueIndex == std::numeric_limits<size_t>::max() &&
-        // m_physicalDevice->getSurfaceSupportKHR(queueIndex, *m_surface) && m_needsPresentQueue) {
-        //     m_presentQueueIndex = queueIndex;
-        //     useQueue = true;
-        // }
 
         if (useQueue) {
             vk::DeviceQueueCreateInfo queueCreateInfo;
             queueCreateInfo.setQueueFamilyIndex(queueIndex).setQueueCount(1).setPQueuePriorities(&defaultQueuePriority);
             queueCreateInfos.push_back(std::move(queueCreateInfo));
+            break;
         }
 
         queueIndex++;
@@ -241,4 +247,9 @@ void Device::QueueData::resetCommandBuffers()
 void Device::QueueData::waitIdle()
 {
     queue->waitIdle();
+}
+
+GLFWWindow& Device::createGLFWWindow(uint32_t width, uint32_t height, const std::string& title)
+{
+    return createWindow<GLFWWindow>(width, height, title);
 }

@@ -41,3 +41,14 @@ void Resource::setOptimization(OptimizationFlags optimization)
         return;
     setMemoryUsage(static_cast<VmaMemoryUsage>(optimization));
 }
+bool Resource::exists()
+{
+    return static_cast<bool>(m_vmaResource);
+}
+
+void Resource::update()
+{
+    if (!exists() || m_recreateResource)
+        create();
+    m_recreateResource = false;
+}

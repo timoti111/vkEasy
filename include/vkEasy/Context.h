@@ -15,14 +15,15 @@ public:
     static Context& get();
     static void initialize();
 
+    vk::raii::Instance& instance();
     std::set<std::string> extensions() const;
     std::set<std::string> layers() const;
     vk::ApplicationInfo applicationInfo() const;
     void setApplicationInfo(const vk::ApplicationInfo& applicationInfo);
     void addExtension(const std::string& extension);
-    void addExtensions(std::vector<std::string> extensions);
+    void addExtensions(const std::vector<std::string>& extensions);
     void addLayer(const std::string& layer);
-    void addLayers(std::vector<std::string> layers);
+    void addLayers(const std::vector<std::string>& layers);
 
     vk::raii::PhysicalDevices& getPhysicalDevices();
     vk::easy::Device& createDevice(vk::raii::PhysicalDevice* device = nullptr);
@@ -30,7 +31,9 @@ public:
 private:
     Context();
     std::set<std::string> m_extensions;
+    std::set<std::string> m_supportedExtensions;
     std::set<std::string> m_layers;
+    std::set<std::string> m_supportedLayers;
     vk::ApplicationInfo m_applicationInfo;
     vk::InstanceCreateInfo m_instanceCreateInfo;
     vk::DebugUtilsMessengerCreateInfoEXT m_debugMessengerCreateInfo;

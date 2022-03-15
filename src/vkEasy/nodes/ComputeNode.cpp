@@ -10,7 +10,6 @@ ComputeNode::ComputeNode()
 {
     m_neededQueueTypes = vk::QueueFlagBits::eCompute;
     m_pipelineStage = vk::PipelineStageFlagBits::eComputeShader;
-    m_shaderStage = createShaderStage(vk::ShaderStageFlagBits::eCompute);
 }
 
 void ComputeNode::update(Device* device)
@@ -27,9 +26,9 @@ void ComputeNode::update(Device* device)
     computeBuffers[0]->dispatch(m_dispatchSize[0], m_dispatchSize[1], m_dispatchSize[2]);
 }
 
-ShaderStage& ComputeNode::getShaderStage()
+ShaderStage& ComputeNode::getComputeShaderStage()
 {
-    return *m_shaderStage;
+    return *getShaderStage(vk::ShaderStageFlagBits::eCompute);
 }
 
 void ComputeNode::setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
@@ -39,11 +38,8 @@ void ComputeNode::setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, ui
 
 void ComputeNode::buildPipeline(vk::easy::Device* device)
 {
-    vk::PipelineCacheCreateInfo pipelineCacheCreateInfo;
-    m_pipelineCache = std::make_unique<vk::raii::PipelineCache>(*device->getLogicalDevice(), pipelineCacheCreateInfo);
-    m_shaderStage->update(device);
     m_computePipelineCreateInfo.setLayout(**m_pipelineLayout)
-        .setStage(*m_shaderStage->getPipelineShaderStageCreateInfo());
+        .setStage(*getComputeShaderStage().getPipelineShaderStageCreateInfo());
     m_pipeline = std::make_unique<vk::raii::Pipeline>(
         *device->getLogicalDevice(), *m_pipelineCache, m_computePipelineCreateInfo);
 }

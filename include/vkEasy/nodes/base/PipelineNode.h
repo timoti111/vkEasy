@@ -29,10 +29,11 @@ protected:
     void needsRebuild();
     virtual void buildPipeline(vk::easy::Device* device) = 0;
     void build(Device* device);
-    ShaderStage* createShaderStage(const vk::ShaderStageFlagBits& stage);
+    ShaderStage* getShaderStage(const vk::ShaderStageFlagBits& stage);
 
     std::map<vk::ShaderStageFlagBits, std::unique_ptr<ShaderStage>> m_stages;
     std::unique_ptr<vk::raii::Pipeline> m_pipeline;
+    std::unique_ptr<vk::raii::PipelineCache> m_pipelineCache;
     std::unique_ptr<vk::raii::DescriptorPool> m_descriptorPool;
     std::vector<std::unique_ptr<vk::raii::DescriptorSetLayout>> m_setLayouts;
     std::unique_ptr<vk::raii::DescriptorSets> m_descriptorSets;

@@ -18,11 +18,8 @@ public:
 protected:
     Buffer();
     virtual void create();
-    virtual void update();
-    virtual bool exists();
 
     vk::BufferUsageFlags m_bufferUsageFlags;
-    size_t m_size = 0;
-    bool m_recreateBuffer = false;
+    vk::BufferCreateInfo m_bufferCreateInfo;
 };
 }

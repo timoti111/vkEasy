@@ -1,25 +1,25 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(vkEasyTesting)
+project(vkEasyCompute)
 
-file(GLOB_RECURSE vkEasyTesting_SOURCES
+file(GLOB_RECURSE vkEasyCompute_SOURCES
     "*.cpp"
     "*.c"
 )
 
-file(GLOB_RECURSE vkEasyTesting_HEADERS
+file(GLOB_RECURSE vkEasyCompute_HEADERS
     "*.hpp"
     "*.h"
 )
 
-file(GLOB_RECURSE vkEasyTesting_SHADERS
+file(GLOB_RECURSE vkEasyCompute_SHADERS
     "*.comp"
 )
 
-source_group(headers FILES ${vkEasyTesting_HEADERS})
-source_group(sources FILES ${vkEasyTesting_SOURCES})
+source_group(headers FILES ${vkEasyCompute_HEADERS})
+source_group(sources FILES ${vkEasyCompute_SOURCES})
 
-add_executable(${PROJECT_NAME} ${vkEasyTesting_HEADERS} ${vkEasyTesting_SOURCES} ${vkEasyTesting_SHADERS})
+add_executable(${PROJECT_NAME} ${vkEasyCompute_HEADERS} ${vkEasyCompute_SOURCES} ${vkEasyCompute_SHADERS})
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/headless.comp" "${CMAKE_CURRENT_BINARY_DIR}/headless.comp" COPYONLY)
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)

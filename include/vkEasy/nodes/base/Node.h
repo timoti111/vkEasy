@@ -26,7 +26,7 @@ public:
     void operator()();
 
 protected:
-    Node(const std::string& nodeName);
+    explicit Node(const std::string& nodeName);
     void uses(Resource* resource);
     Graph* getGraph();
     Device* getDevice();

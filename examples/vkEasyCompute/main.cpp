@@ -10,6 +10,7 @@
 #define BUFFER_ELEMENTS 32
 struct SpecializationData {
     uint32_t BUFFER_ELEMENT_COUNT = BUFFER_ELEMENTS;
+    float BUFFER_ELEMENT_COUNTF = BUFFER_ELEMENTS;
 };
 
 int main()
@@ -29,18 +30,18 @@ int main()
 
     // auto& gpuBuffer = graph.createResource<vk::easy::StorageBuffer>(vk::easy::Resource::CPU_TO_GPU);
     // auto& gpuBuffer = graph.createResource<vk::easy::StorageBuffer>(vk::easy::Resource::GPU_TO_CPU);
-    auto& gpuBuffer = graph.createResource<vk::easy::StorageBuffer>();
+    auto& gpuBuffer = graph.createStorageBuffer();
     gpuBuffer.setSize(bufferSize);
 
-    auto& memoryWrite = graph.createNode<vk::easy::MemoryWriteNode>();
+    auto& memoryWrite = graph.createMemoryWriteNode();
     memoryWrite.setDstResource(gpuBuffer);
     memoryWrite.setData(computeInputBytes);
 
-    auto& compute = graph.createNode<vk::easy::ComputeNode>();
+    auto& compute = graph.createComputeNode();
     auto gpuBufferDescriptor = compute.createDescriptor({ &gpuBuffer }, 0, 0);
     compute.setDispatchSize(BUFFER_ELEMENTS, 1, 1);
 
-    auto& stage = compute.getShaderStage();
+    auto& stage = compute.getComputeShaderStage();
     SpecializationData specializationData;
     stage.setShaderFile("headless.comp");
     stage.defineConstant(
@@ -49,7 +50,7 @@ int main()
     stage.usesDescriptor(gpuBufferDescriptor);
 
     std::vector<uint32_t> computeOutput;
-    auto& memoryRead = graph.createNode<vk::easy::MemoryReadNode>();
+    auto& memoryRead = graph.createMemoryReadNode();
     memoryRead.setSrcResource(gpuBuffer);
     memoryRead.onDataReady([&computeOutput](auto& data) {
         auto dataPtr32 = reinterpret_cast<const uint32_t*>(data.data());
