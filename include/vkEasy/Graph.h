@@ -17,9 +17,9 @@ public:
     Graph(Graph const&) = delete;
     void operator=(Graph const&) = delete;
 
-    void startRecording();
-    void stopRecording();
-    void run();
+    void enqueueNode(Node& node);
+    void compile();
+    void execute(bool waitUntilFinished = true);
 
     template <class T>
     requires(std::is_base_of_v<Node, T> && !std::is_same_v<Node, T>) T& createNode()
@@ -44,30 +44,35 @@ public:
         m_resources.back()->setOptimization(optimization);
         return *dynamic_cast<T*>(m_resources.back().get());
     }
-    StagingBuffer& createStagingBuffer();
-    StorageBuffer& createStorageBuffer();
-    UniformBuffer& createUniformBuffer();
+    StagingBuffer& createStagingBuffer(
+        Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
+    StorageBuffer& createStorageBuffer(
+        Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
+    UniformBuffer& createUniformBuffer(
+        Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
 
 private:
     Graph();
     vk::raii::Event* createEvent(std::function<void()> action);
-    void setActualPipelineStage(vk::PipelineStageFlagBits stage);
-    vk::PipelineStageFlagBits getLastPipelineStage();
     void setDevice(Device* device);
-    bool m_recording = false;
+    bool m_compiled = false;
 
-    std::vector<Node*> m_nodeOrderGraph;
-    std::vector<std::function<void()>> m_callGraph;
-    std::map<Resource*, std::vector<Node*>> m_resourceUsage;
-
+    struct RenderStep {
+        Node* renderTask;
+        std::vector<Resource*> createdResources;
+        std::vector<Resource*> destroyedResources;
+    };
     std::vector<std::unique_ptr<Node>> m_nodes;
     std::vector<std::unique_ptr<Resource>> m_resources;
+    std::vector<RenderStep> m_timeline;
+
+    std::vector<Node*> m_nodeOrderGraph;
+
     struct Event {
         std::unique_ptr<vk::raii::Event> vkEvent;
         std::function<void()> action;
     };
     std::vector<Event> m_events;
-    vk::PipelineStageFlagBits m_lastPipelineStage;
 
     Device* m_device;
 };

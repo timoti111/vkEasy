@@ -10,32 +10,21 @@ Node::Node(const std::string& nodeName)
 {
 }
 
-void Node::uses(Resource* resource)
+void Node::uses(Resource* resource, Resource::Access access)
 {
-    m_usedResources.emplace(resource);
-}
-
-void Node::operator()()
-{
-    if (!m_graph->m_recording)
-        error(Error::NotRecordingGraph);
-    m_dependantNodes.clear();
-    if (!m_graph->m_nodeOrderGraph.empty()) {
-        m_dependantNodes.push_back(m_graph->m_nodeOrderGraph.back());
-        m_graph->m_nodeOrderGraph.back()->setNext(this);
+    if (resource->m_graph->m_device != m_graph->m_device || m_graph->m_compiled)
+        return; // TODO Error
+    if (access == Resource::Access::ReadOnly && !m_writes.contains(resource))
+        m_reads.insert(resource);
+    if (access == Resource::Access::ReadWrite) {
+        m_writes.insert(resource);
+        m_reads.erase(resource);
     }
-    m_graph->m_nodeOrderGraph.push_back(this);
-
-    for (auto& usedResource : m_usedResources)
-        m_graph->m_resourceUsage[usedResource].push_back(this);
 }
 
 void Node::addExecutionBarrier(vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst)
 {
-    if (dst == vk::PipelineStageFlagBits::eNoneKHR)
-        return;
-    m_graph->setActualPipelineStage(dst);
-    if (src == vk::PipelineStageFlagBits::eNoneKHR)
+    if (dst == vk::PipelineStageFlagBits::eNoneKHR || src == vk::PipelineStageFlagBits::eNoneKHR)
         return;
 
 #ifndef NDEBUG
@@ -46,11 +35,6 @@ void Node::addExecutionBarrier(vk::PipelineStageFlagBits src, vk::PipelineStageF
     if (buffers.empty())
         return;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, {}, {});
-}
-
-void Node::addExecutionBarrier(vk::PipelineStageFlagBits dst)
-{
-    addExecutionBarrier(m_graph->getLastPipelineStage(), dst);
 }
 
 void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
@@ -73,27 +57,67 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
     buffers[0]->pipelineBarrier(src, dst, {}, {}, bufferBarrier, {});
 }
 
-void Node::addEvent(std::function<void()> event)
+void Node::addResourceEvent(std::function<void()> event, Resource* resource)
 {
+    auto& lastAccess = resource->m_lastAccess;
+    auto stage = lastAccess ? lastAccess->node->m_pipelineStage : vk::PipelineStageFlagBits::eNone;
+    addEvent(event, stage);
+}
+
+void Node::addEvent(std::function<void()> event, vk::PipelineStageFlagBits afterStage)
+{
+    if (afterStage == vk::PipelineStageFlagBits::eNoneKHR)
+        afterStage = vk::PipelineStageFlagBits::eAllCommands;
 #ifndef NDEBUG
-    std::cout << "Adding event after { " << vk::to_string(m_graph->getLastPipelineStage()) << " }" << std::endl;
+    std::cout << "Adding event after { " << vk::to_string(afterStage) << " }" << std::endl;
 #endif
     auto vkEvent = m_graph->createEvent(event);
     auto buffers = m_device->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
-    buffers[0]->setEvent(**vkEvent, vk::PipelineStageFlagBits::eAllCommands);
+    buffers[0]->setEvent(**vkEvent, afterStage);
 }
 
 void Node::execute()
 {
-    addExecutionBarrier(m_pipelineStage);
-    for (auto& usedResource : m_usedResources)
-        usedResource->update();
+    for (auto& create : m_creates) {
+        if (!create->exists())
+            create->update();
+    }
+
+    for (auto& read : m_reads) {
+        if (!read->exists())
+            read->update();
+        auto& lastAccess = read->m_lastAccess;
+        if (!lastAccess)
+            continue;
+        if (lastAccess->access == Resource::Access::ReadWrite)
+            addExecutionBarrier(lastAccess->node->m_pipelineStage, m_pipelineStage);
+    }
+
+    for (auto& write : m_writes) {
+        if (!write->exists())
+            write->update();
+        auto& lastAccess = write->m_lastAccess;
+        if (!lastAccess)
+            continue;
+        addExecutionBarrier(lastAccess->node->m_pipelineStage, m_pipelineStage);
+    }
+
 #ifndef NDEBUG
     std::cout << "Executing { " << objectName() << " }" << std::endl;
 #endif
+
     update(m_device);
+
+    if (m_pipelineStage != vk::PipelineStageFlagBits::eNoneKHR) {
+        for (auto& create : m_creates)
+            create->m_lastAccess = Resource::AccessInfo { Resource::Access::ReadWrite, this };
+        for (auto& read : m_reads)
+            read->m_lastAccess = Resource::AccessInfo { Resource::Access::ReadOnly, this };
+        for (auto& write : m_writes)
+            write->m_lastAccess = Resource::AccessInfo { Resource::Access::ReadWrite, this };
+    }
 }
 
 Graph* Node::getGraph()
@@ -112,13 +136,13 @@ void Node::setGraph(Graph* graph)
     m_device = graph->m_device;
 }
 
-void Node::setNext(Node* next)
-{
-    m_nextNode = next;
-}
-
 void Node::needsExtensions(const std::initializer_list<std::string>& extensions)
 {
     for (auto& extension : extensions)
-        m_neededExtensions.emplace(extension);
+        m_neededExtensions.insert(extension);
+}
+
+void Node::setCullImmune(bool cullImmune)
+{
+    m_cullImmune = cullImmune;
 }

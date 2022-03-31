@@ -19,9 +19,9 @@ void SwapChain::update()
     m_buffers.clear();
 
     vk::raii::PhysicalDevice* device = m_parent->m_parent->m_physicalDevice;
-    auto capabilities = device->getSurfaceCapabilitiesKHR(*m_parent->m_surface);
-    auto formats = device->getSurfaceFormatsKHR(*m_parent->m_surface);
-    auto presentModes = device->getSurfacePresentModesKHR(*m_parent->m_surface);
+    auto capabilities = device->getSurfaceCapabilitiesKHR(**m_parent->m_surface);
+    auto formats = device->getSurfaceFormatsKHR(**m_parent->m_surface);
+    auto presentModes = device->getSurfacePresentModesKHR(**m_parent->m_surface);
     bool found = false;
     for (const auto& availableFormat : formats) {
         if (availableFormat.format == m_swapChainCreateInfo.imageFormat

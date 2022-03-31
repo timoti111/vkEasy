@@ -10,12 +10,11 @@
 #define BUFFER_ELEMENTS 32
 struct SpecializationData {
     uint32_t BUFFER_ELEMENT_COUNT = BUFFER_ELEMENTS;
-    float BUFFER_ELEMENT_COUNTF = BUFFER_ELEMENTS;
 };
 
 int main()
 {
-    vk::easy::Context::initialize();
+    // Setup phase
     auto& device = vk::easy::Context::get().createDevice();
     auto& graph = device.createGraph();
 
@@ -28,9 +27,7 @@ int main()
     auto dataPtr8 = reinterpret_cast<uint8_t*>(computeInput.data());
     std::vector<uint8_t> computeInputBytes(dataPtr8, dataPtr8 + bufferSize);
 
-    // auto& gpuBuffer = graph.createResource<vk::easy::StorageBuffer>(vk::easy::Resource::CPU_TO_GPU);
-    // auto& gpuBuffer = graph.createResource<vk::easy::StorageBuffer>(vk::easy::Resource::GPU_TO_CPU);
-    auto& gpuBuffer = graph.createStorageBuffer();
+    auto& gpuBuffer = graph.createStorageBuffer(vk::easy::Resource::CPU_TO_GPU);
     gpuBuffer.setSize(bufferSize);
 
     auto& memoryWrite = graph.createMemoryWriteNode();
@@ -56,15 +53,17 @@ int main()
         auto dataPtr32 = reinterpret_cast<const uint32_t*>(data.data());
         computeOutput.insert(computeOutput.end(), dataPtr32, dataPtr32 + BUFFER_ELEMENTS);
     });
+    memoryRead.setCullImmune(true);
 
-    graph.startRecording();
-    memoryWrite();
-    compute();
-    memoryRead();
-    graph.stopRecording();
+    graph.enqueueNode(memoryWrite);
+    graph.enqueueNode(compute);
+    graph.enqueueNode(memoryRead);
 
-    graph.run();
-    device.waitForQueue();
+    // Compile phase
+    graph.compile();
+
+    // Execute phase
+    graph.execute();
 
     std::cout << "Compute input:" << std::endl;
     for (auto& v : computeInput)

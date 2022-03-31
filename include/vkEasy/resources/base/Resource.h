@@ -1,4 +1,5 @@
 #pragma once
+#include <optional>
 #include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/global.h>
 
@@ -16,9 +17,12 @@ public:
     void operator=(Resource const&) = delete;
     virtual ~Resource() = default;
 
+    enum class Access { ReadOnly = 1, ReadWrite = 2 };
+
     bool isBuffer();
     vk::DescriptorType getDescriptorType();
     MemoryAllocator::Resource& getMemory();
+    void setPersistence(bool persistent);
 
     typedef enum OptimizationFlags {
         NO_OPTIMIZATION,
@@ -28,8 +32,10 @@ public:
 
 protected:
     Resource() = default;
+
     void setMemoryUsage(VmaMemoryUsage flag);
     virtual void create() = 0;
+    void destroy();
     virtual void update();
     virtual bool exists();
 
@@ -37,11 +43,25 @@ protected:
 
     VmaAllocationCreateInfo m_allocInfo;
 
+    struct AccessInfo {
+        Access access;
+        Node* node;
+    };
+
+    std::optional<AccessInfo> m_lastAccess;
+
     Graph* m_graph = nullptr;
     Device* m_device = nullptr;
     vk::DescriptorType m_descriptorType;
     bool m_isBuffer = false;
     bool m_recreateResource = false;
+
+    // Graph compilation members
+    Node* m_creator = nullptr;
+    std::vector<Node*> m_readers;
+    std::vector<Node*> m_writers;
+    size_t m_referenceCount;
+    bool m_isPersistent = false;
 
     std::unique_ptr<MemoryAllocator::Resource> m_vmaResource;
 

@@ -10,3 +10,9 @@ WSI::WSI(uint32_t width, uint32_t height, const std::string& title, Device* pare
     , m_swapChain(this)
 {
 }
+
+void WSI::update()
+{
+    if (!m_surface)
+        createSurface();
+}

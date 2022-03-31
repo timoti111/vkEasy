@@ -13,8 +13,6 @@ public:
     void operator=(Context const&) = delete;
 
     static Context& get();
-    static void initialize();
-
     vk::raii::Instance& instance();
     std::set<std::string> extensions() const;
     std::set<std::string> layers() const;
@@ -30,6 +28,8 @@ public:
 
 private:
     Context();
+    static void initialize();
+
     std::set<std::string> m_extensions;
     std::set<std::string> m_supportedExtensions;
     std::set<std::string> m_layers;

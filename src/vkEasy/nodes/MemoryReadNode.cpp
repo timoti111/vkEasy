@@ -12,7 +12,6 @@ MemoryReadNode::MemoryReadNode()
 {
     setDataToRead();
     m_neededQueueTypes = vk::QueueFlagBits::eTransfer;
-    m_pipelineStage = vk::PipelineStageFlagBits::eNoneKHR;
 }
 
 void MemoryReadNode::update(Device* device)
@@ -20,6 +19,7 @@ void MemoryReadNode::update(Device* device)
     auto bytesToRead = std::min(m_size, m_resource->getMemory().getSize());
     m_data.resize(bytesToRead);
     if (!m_resource->getMemory().isMappable()) {
+        m_pipelineStage = vk::PipelineStageFlagBits::eNoneKHR;
         if (!m_stagingBuffer)
             m_stagingBuffer = &getGraph()->createResource<StagingBuffer>();
         if (!m_bufferCopyNode) {
@@ -29,17 +29,20 @@ void MemoryReadNode::update(Device* device)
         m_stagingBuffer->setSize(bytesToRead);
         m_bufferCopyNode->setSrcResource(*m_resource, bytesToRead, m_offset);
         m_bufferCopyNode->execute();
-    }
-    addEvent([this]() {
-        if (m_onDataReady)
-            m_onDataReady(getData());
-    });
-    addExecutionBarrier(vk::PipelineStageFlagBits::eHost);
+    } else
+        m_pipelineStage = vk::PipelineStageFlagBits::eHost;
+
+    addResourceEvent(
+        [this]() {
+            if (m_onDataReady)
+                m_onDataReady(getData());
+        },
+        m_resource);
 }
 
 void MemoryReadNode::setSrcResource(Resource& resource)
 {
-    uses(&resource);
+    uses(&resource, Resource::Access::ReadOnly);
     m_resource = &resource;
     auto m_srcBuffer = dynamic_cast<Buffer*>(m_resource);
     if (m_srcBuffer)
@@ -51,6 +54,7 @@ void MemoryReadNode::setDataToRead(size_t offset, size_t size)
     m_offset = offset;
     m_size = size;
 }
+
 void MemoryReadNode::onDataReady(std::function<void(const std::vector<uint8_t>&)> dataReady)
 {
     m_onDataReady = dataReady;

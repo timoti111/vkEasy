@@ -34,7 +34,7 @@ public:
     void sendCommandBuffers();
     void waitForFences();
     void resetCommandBuffers();
-    void waitForQueue();
+    void wait();
     std::vector<vk::raii::CommandBuffer*> getUniversalCommandBuffers(size_t count);
 
 private:
@@ -72,7 +72,6 @@ private:
 
     std::unique_ptr<MemoryAllocator> m_allocator;
     std::vector<std::unique_ptr<Graph>> m_graphs;
-    Graph* m_actualGraph;
     vk::raii::PhysicalDevice* m_physicalDevice = nullptr;
     bool m_initialized = false;
 };

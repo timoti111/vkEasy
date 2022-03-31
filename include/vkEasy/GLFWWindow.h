@@ -15,9 +15,10 @@ public:
     GLFWWindow(GLFWWindow const&) = delete;
     void operator=(GLFWWindow const&) = delete;
 
-    static std::vector<std::string> requiredInstanceExtensions();
-
     virtual vk::Extent2D resolution() override;
+
+protected:
+    virtual void createSurface() override;
 
 private:
     GLFWWindow(uint32_t width, uint32_t height, const std::string& title, Device* parent);

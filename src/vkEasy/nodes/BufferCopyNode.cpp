@@ -29,7 +29,7 @@ void BufferCopyNode::update(Device* device)
 
 void BufferCopyNode::setSrcResource(Resource& resource, size_t size, size_t offset)
 {
-    uses(&resource);
+    uses(&resource, Resource::Access::ReadOnly);
     m_src = &resource;
     auto m_srcBuffer = dynamic_cast<Buffer*>(m_src);
     if (m_srcBuffer) {
@@ -40,7 +40,7 @@ void BufferCopyNode::setSrcResource(Resource& resource, size_t size, size_t offs
 
 void BufferCopyNode::setDstResource(Resource& resource, size_t offset)
 {
-    uses(&resource);
+    uses(&resource, Resource::Access::ReadWrite);
     m_dst = &resource;
     auto m_dstBuffer = dynamic_cast<Buffer*>(m_dst);
     if (m_dstBuffer) {

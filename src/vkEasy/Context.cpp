@@ -14,7 +14,7 @@ void Context::initialize()
 {
     auto& context = Context::get();
     if (context.m_instance)
-        context.error(Error::MultipleInitializations);
+        return;
 
 #ifndef NDEBUG
     context.addLayer("VK_LAYER_KHRONOS_validation");
@@ -22,15 +22,6 @@ void Context::initialize()
 #endif
 
     context.addExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
-    //     context.addExtension(VK_KHR_SURFACE_EXTENSION_NAME);
-
-    // #ifdef VK_USE_PLATFORM_WAYLAND_KHR
-    //     context.addExtension(VK_KHR_WAYLAND_SURFACE_EXTENSION_NAME);
-    // #elif VK_USE_PLATFORM_XCB_KHR
-    //     context.addExtension(VK_KHR_XCB_SURFACE_EXTENSION_NAME);
-    // #elif VK_USE_PLATFORM_WIN32_KHR
-    //     context.addExtension(VK_KHR_WIN32_SURFACE_EXTENSION_NAME);
-    // #endif
 
     std::vector<std::string> unsupportedExtensions(context.m_extensions.size());
     auto it = std::set_difference(context.m_extensions.begin(), context.m_extensions.end(),
@@ -236,6 +227,7 @@ Device& Context::createDevice(vk::raii::PhysicalDevice* device)
     m_devices.push_back(std::unique_ptr<Device>(new Device(device)));
     return *m_devices.back().get();
 }
+
 vk::raii::Instance& Context::instance()
 {
     return *m_instance;

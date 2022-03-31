@@ -42,9 +42,6 @@ void Device::findPhysicalDevice()
     m_requiredExtensions.clear();
     m_requiredFeatures = vk::PhysicalDeviceFeatures();
 
-    for (auto& node : m_actualGraph->m_nodeOrderGraph)
-        m_neededQueues = m_neededQueues | node->m_neededQueueTypes;
-
     if (!m_physicalDevice) {
         std::multimap<int, vk::raii::PhysicalDevice*> candidates;
         for (auto& physicalDevice : vk::easy::Context::get().getPhysicalDevices()) {
@@ -53,7 +50,7 @@ void Device::findPhysicalDevice()
             if (!m_windows.empty()) {
                 auto queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
                 for (size_t queueIndex = 0; queueIndex < queueFamilyProperties.size(); queueIndex++)
-                    score += physicalDevice.getSurfaceSupportKHR(queueIndex, *m_windows[0]->m_surface) ? 1000 : 0;
+                    score += physicalDevice.getSurfaceSupportKHR(queueIndex, **m_windows[0]->m_surface) ? 1000 : 0;
             }
             candidates.emplace(score, &physicalDevice);
         }
@@ -70,14 +67,18 @@ void Device::findPhysicalDevice()
             m_requiredExtensions.emplace(extName);
         }
     };
-
+    for (auto& graph : m_graphs)
+        for (auto& node : graph->m_timeline) {
+            m_neededQueues = m_neededQueues | node.renderTask->m_neededQueueTypes;
+            for (auto& requiredExtension : node.renderTask->m_neededExtensions)
+                m_requiredExtensions.insert(requiredExtension);
+        }
     addIfExists(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
     addIfExists(VK_KHR_BIND_MEMORY_2_EXTENSION_NAME);
     addIfExists(VK_KHR_GET_MEMORY_REQUIREMENTS_2_EXTENSION_NAME);
 
-    if (!m_windows.empty()) {
+    if (!m_windows.empty())
         addIfExists(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-    }
 
     std::transform(m_requiredExtensions.begin(), m_requiredExtensions.end(),
         std::back_inserter(m_requiredExtensionsVkCompatible),
@@ -86,6 +87,12 @@ void Device::findPhysicalDevice()
 
 void Device::initialize()
 {
+    Context::initialize();
+    if (m_initialized)
+        return; // TODO Error
+    for (auto& window : m_windows)
+        window->update();
+
     m_queues.clear();
     m_device.reset();
 
@@ -100,7 +107,7 @@ void Device::initialize()
     for (auto& queueFamilyProperty : queueFamilyProperties) {
         bool useQueue = false;
         if ((queueFamilyProperty.queueFlags & m_neededQueues) == m_neededQueues) {
-            if (!m_windows.empty() && !m_physicalDevice->getSurfaceSupportKHR(queueIndex, *m_windows[0]->m_surface))
+            if (!m_windows.empty() && !m_physicalDevice->getSurfaceSupportKHR(queueIndex, **m_windows[0]->m_surface))
                 continue;
             m_universalQueueIndex = queueIndex;
             m_neededQueues &= ~queueFamilyProperty.queueFlags;
@@ -148,6 +155,8 @@ void Device::initialize()
         [](const auto& ext) { std::cout << "Device Extension: " << ext << std::endl; });
     std::cout << std::endl;
 #endif
+
+    m_initialized = true;
 }
 
 void Device::initializeVMA()
@@ -186,7 +195,7 @@ void Device::waitForFences()
             queue->waitForFence(m_device.get());
 }
 
-void Device::waitForQueue()
+void Device::wait()
 {
     for (auto& queue : m_queues)
         if (queue)

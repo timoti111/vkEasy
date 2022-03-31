@@ -4,42 +4,32 @@
 
 using namespace VK_EASY_NAMESPACE;
 
-struct glfwContext {
-    glfwContext()
-    {
-        glfwInit();
-        glfwSetErrorCallback(
-            [](int error, const char* msg) { std::cerr << "glfw: " << error << "; " << msg << std::endl; });
-    }
-
-    ~glfwContext()
-    {
-        glfwTerminate();
-    }
-};
-static glfwContext glfwCtx = glfwContext();
-
 GLFWWindow::GLFWWindow(uint32_t width, uint32_t height, const std::string& title, Device* parent)
     : WSI(width, height, title, parent)
 {
+    struct glfwContext {
+        glfwContext()
+        {
+            glfwInit();
+            glfwSetErrorCallback(
+                [](int error, const char* msg) { std::cerr << "glfw: " << error << "; " << msg << std::endl; });
+
+            std::vector<std::string> extensions;
+            uint32_t count;
+            auto extensionsPtr = glfwGetRequiredInstanceExtensions(&count);
+            extensions.insert(extensions.end(), extensionsPtr, extensionsPtr + count);
+            Context::get().addExtensions(extensions);
+        }
+
+        ~glfwContext()
+        {
+            glfwTerminate();
+        }
+    };
+    static glfwContext glfwCtx = glfwContext();
+
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     m_handle = glfwCreateWindow(m_extent.width, m_extent.height, m_name.c_str(), nullptr, nullptr);
-
-    VkSurfaceKHR surface;
-    auto& instance = vk::easy::Context::get().instance();
-    VkResult err = glfwCreateWindowSurface(static_cast<VkInstance>(*instance), m_handle, nullptr, &surface);
-    if (err != VK_SUCCESS)
-        throw std::runtime_error("Failed to create window!");
-    m_surface = vk::raii::SurfaceKHR(instance, surface);
-}
-
-std::vector<std::string> GLFWWindow::requiredInstanceExtensions()
-{
-    std::vector<std::string> extensions;
-    uint32_t count;
-    auto extensionsPtr = glfwGetRequiredInstanceExtensions(&count);
-    extensions.insert(extensions.end(), extensionsPtr, extensionsPtr + count);
-    return extensions;
 }
 
 vk::Extent2D GLFWWindow::resolution()
@@ -48,4 +38,14 @@ vk::Extent2D GLFWWindow::resolution()
     glfwGetFramebufferSize(m_handle, &width, &height);
     VkExtent2D actualExtent = { static_cast<uint32_t>(width), static_cast<uint32_t>(height) };
     return actualExtent;
+}
+
+void GLFWWindow::createSurface()
+{
+    VkSurfaceKHR surface;
+    auto& instance = vk::easy::Context::get().instance();
+    VkResult err = glfwCreateWindowSurface(static_cast<VkInstance>(*instance), m_handle, nullptr, &surface);
+    if (err != VK_SUCCESS)
+        throw std::runtime_error("Failed to create window!");
+    m_surface = std::make_unique<vk::raii::SurfaceKHR>(instance, surface);
 }

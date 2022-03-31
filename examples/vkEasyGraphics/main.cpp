@@ -8,8 +8,6 @@
 
 int main()
 {
-    vk::easy::Context::get().addExtensions(vk::easy::GLFWWindow::requiredInstanceExtensions());
-    vk::easy::Context::initialize();
     auto& device = vk::easy::Context::get().createDevice();
     auto& graph = device.createGraph();
     auto& window = device.createGLFWWindow(800, 600, "Graphics Test");
@@ -21,13 +19,12 @@ int main()
     auto& fragmentStage = graphics.getFragmentShaderStage();
     fragmentStage.setShaderFile("shader.frag");
 
-    // graph.startRecording();
-    // graphics();
-    // graph.stopRecording();
+    graph.enqueueNode(graphics);
+    graph.compile();
 
-    // graph.run();
+    graph.execute();
 
-    // device.waitForQueue();
+    device.wait();
 
     std::this_thread::sleep_for(std::chrono::seconds(5));
 

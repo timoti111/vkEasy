@@ -6,7 +6,6 @@ PresentNode::PresentNode()
     : Node("PresentNode")
 {
     m_neededQueueTypes = vk::QueueFlagBits::eGraphics;
-    m_pipelineStage = vk::PipelineStageFlagBits::eNoneKHR;
 }
 
 void PresentNode::update(Device* device)
