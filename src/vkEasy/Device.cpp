@@ -2,6 +2,7 @@
 #include <limits>
 #include <vkEasy/Context.h>
 #include <vkEasy/Device.h>
+#include <vkEasy/WSI.h>
 
 using namespace VK_EASY_NAMESPACE;
 
@@ -11,10 +12,14 @@ Device::Device(vk::raii::PhysicalDevice* device)
     m_physicalDevice = device;
 }
 
+Device::~Device()
+{
+    wait();
+}
+
 Graph& Device::createGraph()
 {
-    m_graphs.push_back(std::unique_ptr<Graph>(new Graph()));
-    m_graphs.back()->setDevice(this);
+    m_graphs.push_back(std::unique_ptr<Graph>(new Graph(this)));
     return *m_graphs.back().get();
 }
 
@@ -41,6 +46,13 @@ void Device::findPhysicalDevice()
     m_requiredExtensionsVkCompatible.clear();
     m_requiredExtensions.clear();
     m_requiredFeatures = vk::PhysicalDeviceFeatures();
+
+    for (auto& graph : m_graphs) {
+        if (graph->m_window) {
+            m_windows.push_back(graph->m_window.get());
+            m_windows.back()->update();
+        }
+    }
 
     if (!m_physicalDevice) {
         std::multimap<int, vk::raii::PhysicalDevice*> candidates;
@@ -90,8 +102,6 @@ void Device::initialize()
     Context::initialize();
     if (m_initialized)
         return; // TODO Error
-    for (auto& window : m_windows)
-        window->update();
 
     m_queues.clear();
     m_device.reset();
@@ -131,11 +141,12 @@ void Device::initialize()
     m_device = std::make_unique<vk::raii::Device>(*m_physicalDevice, deviceCreateInfo);
 
     vk::CommandPoolCreateInfo cmdPoolInfo;
+    cmdPoolInfo.setFlags(vk::CommandPoolCreateFlagBits::eResetCommandBuffer);
     for (auto& queue : queueCreateInfos) {
         auto queueData = std::make_unique<QueueData>();
-        queueData->queue = std::make_unique<vk::raii::Queue>(*m_device, queue.queueFamilyIndex, 0);
+        queueData->queue = std::make_unique<vk::raii::Queue>(*getLogicalDevice(), queue.queueFamilyIndex, 0);
         cmdPoolInfo.setQueueFamilyIndex(queue.queueFamilyIndex);
-        queueData->commandPool = std::make_unique<vk::raii::CommandPool>(*m_device, cmdPoolInfo);
+        queueData->commandPool = std::make_unique<vk::raii::CommandPool>(*getLogicalDevice(), cmdPoolInfo);
         m_queues.at(queue.queueFamilyIndex) = std::move(queueData);
     }
 
@@ -164,21 +175,28 @@ void Device::initializeVMA()
     VmaAllocatorCreateInfo allocatorInfo = {};
     allocatorInfo.vulkanApiVersion = Context::get().m_applicationInfo.apiVersion;
     allocatorInfo.physicalDevice = **m_physicalDevice;
-    allocatorInfo.device = **m_device;
+    allocatorInfo.device = **getLogicalDevice();
     allocatorInfo.instance = **Context::get().m_instance;
-    m_allocator = std::make_unique<MemoryAllocator>(allocatorInfo, m_device.get(), Context::get().m_instance.get());
+    m_allocator = std::make_unique<MemoryAllocator>(allocatorInfo, getLogicalDevice(), Context::get().m_instance.get());
 }
 
 std::vector<vk::raii::CommandBuffer*> Device::getUniversalCommandBuffers(size_t count)
 {
-    return m_queues.at(m_universalQueueIndex)->getCommandBuffers(count, m_device.get());
+    return m_queues.at(m_universalQueueIndex)->getCommandBuffers(count, getLogicalDevice());
 }
 
-void Device::sendCommandBuffers()
+void Device::sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fence)
 {
     for (auto& queue : m_queues)
         if (queue)
-            queue->sendCommandBuffers(m_device.get());
+            queue->sendCommandBuffers(submitInfo, fence);
+}
+
+void Device::present(vk::PresentInfoKHR* presentInfo)
+{
+    for (auto& queue : m_queues)
+        if (queue)
+            queue->present(presentInfo);
 }
 
 void Device::resetCommandBuffers()
@@ -186,13 +204,6 @@ void Device::resetCommandBuffers()
     for (auto& queue : m_queues)
         if (queue)
             queue->resetCommandBuffers();
-}
-
-void Device::waitForFences()
-{
-    for (auto& queue : m_queues)
-        if (queue)
-            queue->waitForFence(m_device.get());
 }
 
 void Device::wait()
@@ -216,7 +227,6 @@ std::vector<vk::raii::CommandBuffer*> Device::QueueData::getCommandBuffers(size_
     std::vector<vk::raii::CommandBuffer*> ret;
     ret.insert(ret.end(), allocatedCommandBuffers.begin() + usedCommandBuffers, allocatedCommandBuffers.end());
     vk::CommandBufferBeginInfo beginInfo;
-    beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
     for (auto& commandBuffer : ret)
         commandBuffer->begin(beginInfo);
     usedCommandBuffers += count;
@@ -224,7 +234,7 @@ std::vector<vk::raii::CommandBuffer*> Device::QueueData::getCommandBuffers(size_
     return ret;
 }
 
-void Device::QueueData::sendCommandBuffers(vk::raii::Device* device)
+void Device::QueueData::sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fence)
 {
     std::vector<vk::CommandBuffer> cmdBuffersToSubmit;
     for (size_t i = 0; i < usedCommandBuffers; i++) {
@@ -232,20 +242,17 @@ void Device::QueueData::sendCommandBuffers(vk::raii::Device* device)
         cmdBuffersToSubmit.push_back(**allocatedCommandBuffers[i]);
     }
     usedCommandBuffers = 0;
-    vk::SubmitInfo submitInfo;
-    submitInfo.setCommandBuffers(cmdBuffersToSubmit);
+    submitInfo->setCommandBuffers(cmdBuffersToSubmit);
 
-    if (!fence) {
-        vk::FenceCreateInfo fenceInfo;
-        fence = std::make_unique<vk::raii::Fence>(*device, fenceInfo);
-    }
-    device->resetFences(**fence);
-    queue->submit(submitInfo, **fence);
+    if (fence)
+        queue->submit(*submitInfo, **fence);
+    else
+        queue->submit(*submitInfo);
 }
 
-void Device::QueueData::waitForFence(vk::raii::Device* device)
+void Device::QueueData::present(vk::PresentInfoKHR* presentInfo)
 {
-    device->waitForFences(**fence, VK_TRUE, UINT64_MAX);
+    queue->presentKHR(*presentInfo);
 }
 
 void Device::QueueData::resetCommandBuffers()
@@ -256,9 +263,4 @@ void Device::QueueData::resetCommandBuffers()
 void Device::QueueData::waitIdle()
 {
     queue->waitIdle();
-}
-
-GLFWWindow& Device::createGLFWWindow(uint32_t width, uint32_t height, const std::string& title)
-{
-    return createWindow<GLFWWindow>(width, height, title);
 }

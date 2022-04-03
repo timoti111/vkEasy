@@ -31,6 +31,8 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
         set(GLFW_BUILD_X11 OFF CACHE BOOL "" FORCE)
     else()
         add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+        set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
     endif()
 else()
     message(FATAL_ERROR, "Vulkan-Hpp: unhandled platform for samples!")
@@ -44,23 +46,23 @@ set(VK_EASY_SOURCES
     "src/vkEasy/nodes/GraphicsNode.cpp"
     "src/vkEasy/nodes/MemoryReadNode.cpp"
     "src/vkEasy/nodes/MemoryWriteNode.cpp"
-    "src/vkEasy/nodes/PresentNode.cpp"
-    "src/vkEasy/resources/base/Attachment.cpp"
     "src/vkEasy/resources/base/Buffer.cpp"
     "src/vkEasy/resources/base/Image.cpp"
     "src/vkEasy/resources/base/Resource.cpp"
+    "src/vkEasy/resources/AttachmentImage.cpp"
     "src/vkEasy/resources/StagingBuffer.cpp"
     "src/vkEasy/resources/StorageBuffer.cpp"
+    "src/vkEasy/resources/SwapChainImage.cpp"
     "src/vkEasy/resources/UniformBuffer.cpp"
     "src/vkEasy/Context.cpp"
     "src/vkEasy/Device.cpp"
     "src/vkEasy/Error.cpp"
+    "src/vkEasy/Framebuffer.cpp"
     "src/vkEasy/GLFWWindow.cpp"
     "src/vkEasy/global.cpp"
     "src/vkEasy/Graph.cpp"
     "src/vkEasy/MemoryAllocator.cpp"
     "src/vkEasy/ShaderStage.cpp"
-    "src/vkEasy/SwapChain.cpp"
     "src/vkEasy/WSI.cpp"
 )
 set(VK_EASY_INCLUDES
@@ -72,24 +74,24 @@ set(VK_EASY_INCLUDES
     "include/vkEasy/nodes/MemoryReadNode.h"
     "include/vkEasy/nodes/MemoryWriteNode.h"
     "include/vkEasy/nodes/Nodes.h"
-    "include/vkEasy/nodes/PresentNode.h"
-    "include/vkEasy/resources/base/Attachment.h"
     "include/vkEasy/resources/base/Buffer.h"
     "include/vkEasy/resources/base/Image.h"
     "include/vkEasy/resources/base/Resource.h"
     "include/vkEasy/resources/Resources.h"
+    "include/vkEasy/resources/AttachmentImage.h"
     "include/vkEasy/resources/StagingBuffer.h"
     "include/vkEasy/resources/StorageBuffer.h"
+    "include/vkEasy/resources/SwapChainImage.h"
     "include/vkEasy/resources/UniformBuffer.h"
     "include/vkEasy/Context.h"
     "include/vkEasy/Device.h"
     "include/vkEasy/Error.h"
+    "include/vkEasy/Framebuffer.h"
     "include/vkEasy/GLFWWindow.h"
     "include/vkEasy/global.h"
     "include/vkEasy/Graph.h"
     "include/vkEasy/MemoryAllocator.h"
     "include/vkEasy/ShaderStage.h"
-    "include/vkEasy/SwapChain.h"
     "include/vkEasy/Utils.h"
     "include/vkEasy/WSI.h"
 )
@@ -114,6 +116,8 @@ if(MSVC)
 else(MSVC)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -pedantic)
 endif(MSVC)
+
+
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)

@@ -5,4 +5,3 @@
 #include <vkEasy/nodes/GraphicsNode.h>
 #include <vkEasy/nodes/MemoryReadNode.h>
 #include <vkEasy/nodes/MemoryWriteNode.h>
-#include <vkEasy/nodes/PresentNode.h>

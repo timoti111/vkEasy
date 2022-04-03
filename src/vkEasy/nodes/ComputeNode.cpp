@@ -1,6 +1,5 @@
 #include <iostream>
 #include <vkEasy/Device.h>
-#include <vkEasy/Graph.h>
 #include <vkEasy/nodes/ComputeNode.h>
 
 using namespace VK_EASY_NAMESPACE;
@@ -12,11 +11,11 @@ ComputeNode::ComputeNode()
     m_pipelineStage = vk::PipelineStageFlagBits::eComputeShader;
 }
 
-void ComputeNode::update(Device* device)
+void ComputeNode::update()
 {
-    m_basePipelineUpdateFunction(device);
+    m_basePipelineUpdateFunction();
 
-    auto computeBuffers = device->getUniversalCommandBuffers(1);
+    auto computeBuffers = getDevice()->getUniversalCommandBuffers(1);
     if (computeBuffers.empty())
         return;
 
@@ -36,10 +35,10 @@ void ComputeNode::setDispatchSize(uint32_t groupCountX, uint32_t groupCountY, ui
     m_dispatchSize = { groupCountX, groupCountY, groupCountZ };
 }
 
-void ComputeNode::buildPipeline(vk::easy::Device* device)
+void ComputeNode::buildPipeline()
 {
     m_computePipelineCreateInfo.setLayout(**m_pipelineLayout)
         .setStage(*getComputeShaderStage().getPipelineShaderStageCreateInfo());
     m_pipeline = std::make_unique<vk::raii::Pipeline>(
-        *device->getLogicalDevice(), *m_pipelineCache, m_computePipelineCreateInfo);
+        *getDevice()->getLogicalDevice(), *m_pipelineCache, m_computePipelineCreateInfo);
 }

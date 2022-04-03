@@ -7,21 +7,23 @@
 #include <GLFW/glfw3.h>
 
 namespace VK_EASY_NAMESPACE {
-class Device;
+class Graph;
 class GLFWWindow : public WSI {
-    friend class Device;
+    friend class Graph;
 
 public:
     GLFWWindow(GLFWWindow const&) = delete;
     void operator=(GLFWWindow const&) = delete;
 
+    virtual bool shouldClose() override;
+    virtual void pollEvents() override;
     virtual vk::Extent2D resolution() override;
 
 protected:
     virtual void createSurface() override;
 
 private:
-    GLFWWindow(uint32_t width, uint32_t height, const std::string& title, Device* parent);
+    GLFWWindow(uint32_t width, uint32_t height, const std::string& title, Graph* parent);
     GLFWwindow* m_handle;
 };
 } // namespace VK_EASY_NAMESPACE

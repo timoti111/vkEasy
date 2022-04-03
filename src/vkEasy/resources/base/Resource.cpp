@@ -1,5 +1,3 @@
-#include <vkEasy/Device.h>
-#include <vkEasy/Graph.h>
 #include <vkEasy/resources/base/Resource.h>
 
 using namespace VK_EASY_NAMESPACE;
@@ -27,12 +25,6 @@ vk::DescriptorType Resource::getDescriptorType()
 MemoryAllocator::Resource& Resource::getMemory()
 {
     return *m_vmaResource.get();
-}
-
-void Resource::setGraph(Graph* graph)
-{
-    m_graph = graph;
-    m_device = graph->m_device;
 }
 
 void Resource::setOptimization(OptimizationFlags optimization)

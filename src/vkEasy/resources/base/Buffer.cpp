@@ -34,5 +34,5 @@ void Buffer::setSize(size_t size)
 
 void Buffer::create()
 {
-    m_vmaResource = m_device->getAllocator()->createBuffer(m_bufferCreateInfo, m_allocInfo);
+    m_vmaResource = getDevice()->getAllocator()->createBuffer(m_bufferCreateInfo, m_allocInfo);
 }

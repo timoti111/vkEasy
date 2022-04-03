@@ -16,7 +16,7 @@ public:
 
 protected:
     MemoryWriteNode();
-    void update(Device* device);
+    void update();
 
 private:
     size_t m_offset;

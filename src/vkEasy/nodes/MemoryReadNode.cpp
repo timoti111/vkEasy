@@ -1,6 +1,6 @@
 #include <cmath>
 #include <iostream>
-#include <vkEasy/Device.h>
+#include <vkEasy/Graph.h>
 #include <vkEasy/nodes/BufferCopyNode.h>
 #include <vkEasy/nodes/MemoryReadNode.h>
 #include <vkEasy/resources/StagingBuffer.h>
@@ -11,10 +11,11 @@ MemoryReadNode::MemoryReadNode()
     : Node("MemoryReadNode")
 {
     setDataToRead();
+    setCullImmune(true);
     m_neededQueueTypes = vk::QueueFlagBits::eTransfer;
 }
 
-void MemoryReadNode::update(Device* device)
+void MemoryReadNode::update()
 {
     auto bytesToRead = std::min(m_size, m_resource->getMemory().getSize());
     m_data.resize(bytesToRead);

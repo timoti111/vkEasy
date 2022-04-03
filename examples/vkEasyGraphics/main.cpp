@@ -10,23 +10,23 @@ int main()
 {
     auto& device = vk::easy::Context::get().createDevice();
     auto& graph = device.createGraph();
-    auto& window = device.createGLFWWindow(800, 600, "Graphics Test");
+    auto& window = graph.getGLFWWindow(800, 600, "Graphics Test");
+    auto& framebuffer = graph.createFramebuffer();
+    framebuffer.setWindow(window);
 
     auto& graphics = graph.createGraphicsNode();
-
-    auto& vertexStage = graphics.getVertexShaderStage();
-    vertexStage.setShaderFile("shader.vert");
-    auto& fragmentStage = graphics.getFragmentShaderStage();
-    fragmentStage.setShaderFile("shader.frag");
+    graphics.setFramebuffer(framebuffer);
+    graphics.setColorAttachment(window.getAttachment(), 0);
+    graphics.getVertexShaderStage().setShaderFile("shader.vert");
+    graphics.getFragmentShaderStage().setShaderFile("shader.frag");
+    graphics.setCullImmune(true);
 
     graph.enqueueNode(graphics);
     graph.compile();
 
-    graph.execute();
-
+    while (!window.shouldClose())
+        graph.execute(false);
     device.wait();
-
-    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     return 0;
 }

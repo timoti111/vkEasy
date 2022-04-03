@@ -12,11 +12,13 @@ private:
     vk::DescriptorType type;
     std::vector<Resource*> resources;
     std::vector<vk::DescriptorBufferInfo> bufferInfos;
-    vk::ShaderStageFlags shaderStageFlags;
+    std::vector<vk::DescriptorImageInfo> imageInfos;
+    vk::ShaderStageFlags shaderStageFlags = vk::ShaderStageFlagBits::eAll;
 };
 
 class PipelineNode : public Node {
     friend class ShaderStage;
+    friend class Graph;
 
 public:
     PipelineNode(PipelineNode const&) = delete;
@@ -27,8 +29,8 @@ public:
 protected:
     PipelineNode(const std::string& nodeName);
     void needsRebuild();
-    virtual void buildPipeline(vk::easy::Device* device) = 0;
-    void build(Device* device);
+    virtual void buildPipeline() = 0;
+    void build();
     ShaderStage* getShaderStage(const vk::ShaderStageFlagBits& stage);
 
     std::map<vk::ShaderStageFlagBits, std::unique_ptr<ShaderStage>> m_stages;
@@ -41,9 +43,9 @@ protected:
     std::vector<vk::DescriptorSetLayout> m_setLayoutsVk;
     std::unique_ptr<vk::raii::PipelineLayout> m_pipelineLayout;
 
-    std::function<void(Device*)> m_basePipelineUpdateFunction;
+    std::function<void()> m_basePipelineUpdateFunction;
     bool m_needsRebuild = true;
-    bool m_pipelineRebuild = false;
+    bool m_pipelineRebuild = true;
     std::map<size_t, std::map<size_t, Descriptor>> m_layout;
     std::vector<vk::DescriptorPoolSize> m_poolSizes;
     std::vector<vk::WriteDescriptorSet> m_writeDescriptorSets;

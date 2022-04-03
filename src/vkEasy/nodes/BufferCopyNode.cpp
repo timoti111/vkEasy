@@ -12,9 +12,9 @@ BufferCopyNode::BufferCopyNode()
     m_pipelineStage = vk::PipelineStageFlagBits::eTransfer;
 }
 
-void BufferCopyNode::update(Device* device)
+void BufferCopyNode::update()
 {
-    auto transferBuffers = device->getUniversalCommandBuffers(1);
+    auto transferBuffers = getDevice()->getUniversalCommandBuffers(1);
     if (transferBuffers.empty())
         return;
 

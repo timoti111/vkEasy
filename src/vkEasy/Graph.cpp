@@ -8,8 +8,9 @@
 
 using namespace VK_EASY_NAMESPACE;
 
-Graph::Graph()
+Graph::Graph(Device* device)
     : Errorable("Graph")
+    , Object(this, device)
 {
 }
 
@@ -94,6 +95,9 @@ void Graph::compile()
         if (node->m_referenceCount == 0 && !node->m_cullImmune)
             continue;
 
+        if (auto graphicsNode = dynamic_cast<GraphicsNode*>(node))
+            graphicsNode->inOrder();
+
         std::vector<Resource*> createdResources, destroyedResources;
 
         for (auto& resource : node->m_creates) {
@@ -133,20 +137,53 @@ void Graph::compile()
 
         m_timeline.push_back(RenderStep { node, createdResources, destroyedResources });
     }
+
     m_compiled = true;
 }
 
-void Graph::execute(bool waitUntilFinished)
+void Graph::execute()
 {
-    if (!m_device->m_initialized)
-        m_device->initialize();
+    if (!getDevice()->m_initialized)
+        getDevice()->initialize();
+
+    if (m_window) {
+        m_window->m_swapChain->update();
+        m_window->pollEvents();
+    }
 
     if (!m_compiled)
         error(Error::RecordingGraph);
 
+    if (!m_inFlightFence) {
+        vk::FenceCreateInfo fenceCreateInfo;
+        fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
+        m_inFlightFence = std::make_unique<vk::raii::Fence>(*getDevice()->getLogicalDevice(), fenceCreateInfo);
+    }
+
 #ifndef NDEBUG
     std::cout << "Executing graph:" << std::endl;
 #endif
+    vk::SubmitInfo submitInfo;
+    vk::PipelineStageFlags dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+
+    getDevice()->getLogicalDevice()->waitForFences(**m_inFlightFence, true, UINT64_MAX);
+    getDevice()->getLogicalDevice()->resetFences(**m_inFlightFence);
+
+    if (m_window) {
+        vk::SemaphoreCreateInfo semaphoreCreateInfo;
+        if (!m_imageAvailableSemaphore)
+            m_imageAvailableSemaphore
+                = std::make_unique<vk::raii::Semaphore>(*getDevice()->getLogicalDevice(), semaphoreCreateInfo);
+        if (!m_renderFinishedSemaphore)
+            m_renderFinishedSemaphore
+                = std::make_unique<vk::raii::Semaphore>(*getDevice()->getLogicalDevice(), semaphoreCreateInfo);
+        m_imageIndex
+            = m_window->m_swapChain->m_swapChain->acquireNextImage(UINT64_MAX, **m_imageAvailableSemaphore).second;
+        submitInfo.setWaitSemaphores(**m_imageAvailableSemaphore)
+            .setWaitDstStageMask(dstStageMask)
+            .setSignalSemaphores(**m_renderFinishedSemaphore);
+    }
+    getDevice()->resetCommandBuffers();
 
     m_events.clear();
     for (auto& step : m_timeline) {
@@ -156,7 +193,16 @@ void Graph::execute(bool waitUntilFinished)
         // for (auto resource : step.destroyedResources)   // TODO
         //     resource->destroy();
     }
-    m_device->sendCommandBuffers();
+
+    getDevice()->sendCommandBuffers(&submitInfo, m_inFlightFence.get());
+
+    if (m_window) {
+        vk::PresentInfoKHR presentInfo;
+        presentInfo.setImageIndices(m_imageIndex)
+            .setSwapchains(**m_window->m_swapChain->m_swapChain)
+            .setWaitSemaphores(**m_renderFinishedSemaphore);
+        getDevice()->present(&presentInfo);
+    }
 
     for (auto& event : m_events) {
         while (event.vkEvent->getStatus() != vk::Result::eEventSet)
@@ -167,25 +213,13 @@ void Graph::execute(bool waitUntilFinished)
 #ifndef NDEBUG
     std::cout << std::endl;
 #endif
-
-    if (waitUntilFinished)
-        m_device->wait();
-}
-
-void Graph::setDevice(Device* device)
-{
-    if (m_device == device)
-        return;
-    m_device = device;
-    for (auto& node : m_nodes)
-        node->setGraph(this);
 }
 
 vk::raii::Event* Graph::createEvent(std::function<void()> action)
 {
     vk::EventCreateInfo info;
     m_events.push_back(Event());
-    m_events.back().vkEvent = std::make_unique<vk::raii::Event>(*m_device->getLogicalDevice(), info);
+    m_events.back().vkEvent = std::make_unique<vk::raii::Event>(*getDevice()->getLogicalDevice(), info);
     m_events.back().action = action;
     return m_events.back().vkEvent.get();
 }
@@ -215,11 +249,6 @@ MemoryWriteNode& Graph::createMemoryWriteNode()
     return this->createNode<MemoryWriteNode>();
 }
 
-PresentNode& Graph::createPresentNode()
-{
-    return this->createNode<PresentNode>();
-}
-
 StagingBuffer& Graph::createStagingBuffer(Resource::OptimizationFlags optimization)
 {
     return this->createResource<StagingBuffer>(optimization);
@@ -233,4 +262,34 @@ StorageBuffer& Graph::createStorageBuffer(Resource::OptimizationFlags optimizati
 UniformBuffer& Graph::createUniformBuffer(Resource::OptimizationFlags optimization)
 {
     return this->createResource<UniformBuffer>(optimization);
+}
+
+Framebuffer& Graph::createFramebuffer()
+{
+    m_framebuffers.push_back(std::unique_ptr<Framebuffer>(new Framebuffer()));
+    m_framebuffers.back()->m_graph = getGraph();
+    m_framebuffers.back()->m_device = getDevice();
+    return *m_framebuffers.back();
+}
+
+GLFWWindow& Graph::getGLFWWindow(uint32_t width, uint32_t height, const std::string& title)
+{
+    if (!m_window) {
+        m_window = std::unique_ptr<GLFWWindow>(new GLFWWindow(width, height, title, this));
+        m_window->m_graph = getGraph();
+        m_window->m_device = getDevice();
+    }
+    return *dynamic_cast<GLFWWindow*>(m_window.get());
+}
+
+uint32_t Graph::getImageIndex()
+{
+    return m_imageIndex;
+}
+
+uint32_t Graph::getFrames()
+{
+    if (m_window)
+        return m_window->m_swapChain->getNumberOfFramesInFlight();
+    return 1;
 }

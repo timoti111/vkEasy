@@ -12,6 +12,7 @@ public:
 
     void addImageUsageFlag(vk::ImageUsageFlagBits flag);
     VkImage getVkImage();
+    virtual vk::raii::ImageView* getVkImageView(uint32_t imageIndex);
 
     void setDimensionality(const vk::ImageType& dimensionality);
     vk::ImageType getDimensionality();
@@ -25,8 +26,8 @@ public:
     void setMipLevels(uint32_t mipLevels);
     uint32_t getMipLevels();
 
-    void setArrayLevels(uint32_t arrayLevels);
-    uint32_t getArrayLevels();
+    void setArrayLayers(uint32_t arrayLayers);
+    uint32_t getArrayLayers();
 
     void setSamplesPerTexel(const vk::SampleCountFlagBits& samplesPerTexel);
     vk::SampleCountFlagBits getSamplesPerTexel();
@@ -40,5 +41,6 @@ protected:
 
     vk::ImageUsageFlags m_imageUsageFlags;
     vk::ImageCreateInfo m_imageCreateInfo;
+    std::unique_ptr<vk::raii::ImageView> m_view;
 };
 }

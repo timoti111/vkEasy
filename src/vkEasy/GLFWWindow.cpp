@@ -4,7 +4,7 @@
 
 using namespace VK_EASY_NAMESPACE;
 
-GLFWWindow::GLFWWindow(uint32_t width, uint32_t height, const std::string& title, Device* parent)
+GLFWWindow::GLFWWindow(uint32_t width, uint32_t height, const std::string& title, Graph* parent)
     : WSI(width, height, title, parent)
 {
     struct glfwContext {
@@ -48,4 +48,14 @@ void GLFWWindow::createSurface()
     if (err != VK_SUCCESS)
         throw std::runtime_error("Failed to create window!");
     m_surface = std::make_unique<vk::raii::SurfaceKHR>(instance, surface);
+}
+
+bool GLFWWindow::shouldClose()
+{
+    return glfwWindowShouldClose(m_handle);
+}
+
+void GLFWWindow::pollEvents()
+{
+    glfwPollEvents();
 }

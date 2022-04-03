@@ -15,7 +15,7 @@ public:
 
 protected:
     BufferCopyNode();
-    void update(Device* device);
+    void update();
 
 private:
     vk::BufferCopy m_copyRegion;

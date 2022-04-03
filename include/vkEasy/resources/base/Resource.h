@@ -1,14 +1,14 @@
 #pragma once
 #include <optional>
 #include <vkEasy/MemoryAllocator.h>
+#include <vkEasy/Utils.h>
 #include <vkEasy/global.h>
 
 namespace VK_EASY_NAMESPACE {
-class Device;
 class Graph;
 class Node;
 
-class Resource {
+class Resource : public Object {
     friend class Graph;
     friend class Node;
 
@@ -50,8 +50,6 @@ protected:
 
     std::optional<AccessInfo> m_lastAccess;
 
-    Graph* m_graph = nullptr;
-    Device* m_device = nullptr;
     vk::DescriptorType m_descriptorType;
     bool m_isBuffer = false;
     bool m_recreateResource = false;
@@ -64,8 +62,5 @@ protected:
     bool m_isPersistent = false;
 
     std::unique_ptr<MemoryAllocator::Resource> m_vmaResource;
-
-private:
-    void setGraph(Graph* graph);
 };
 }

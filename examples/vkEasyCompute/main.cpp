@@ -27,7 +27,7 @@ int main()
     auto dataPtr8 = reinterpret_cast<uint8_t*>(computeInput.data());
     std::vector<uint8_t> computeInputBytes(dataPtr8, dataPtr8 + bufferSize);
 
-    auto& gpuBuffer = graph.createStorageBuffer(vk::easy::Resource::CPU_TO_GPU);
+    auto& gpuBuffer = graph.createStorageBuffer();
     gpuBuffer.setSize(bufferSize);
 
     auto& memoryWrite = graph.createMemoryWriteNode();
@@ -38,8 +38,8 @@ int main()
     auto gpuBufferDescriptor = compute.createDescriptor({ &gpuBuffer }, 0, 0);
     compute.setDispatchSize(BUFFER_ELEMENTS, 1, 1);
 
-    auto& stage = compute.getComputeShaderStage();
     SpecializationData specializationData;
+    auto& stage = compute.getComputeShaderStage();
     stage.setShaderFile("headless.comp");
     stage.defineConstant(
         0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT), sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
@@ -53,7 +53,6 @@ int main()
         auto dataPtr32 = reinterpret_cast<const uint32_t*>(data.data());
         computeOutput.insert(computeOutput.end(), dataPtr32, dataPtr32 + BUFFER_ELEMENTS);
     });
-    memoryRead.setCullImmune(true);
 
     graph.enqueueNode(memoryWrite);
     graph.enqueueNode(compute);

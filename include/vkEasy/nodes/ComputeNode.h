@@ -15,8 +15,8 @@ public:
 
 protected:
     ComputeNode();
-    void update(Device* device);
-    void buildPipeline(vk::easy::Device* device);
+    void update();
+    void buildPipeline();
 
 private:
     vk::ComputePipelineCreateInfo m_computePipelineCreateInfo;

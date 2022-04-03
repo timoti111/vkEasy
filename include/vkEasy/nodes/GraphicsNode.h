@@ -1,4 +1,5 @@
 #pragma once
+#include <vkEasy/Framebuffer.h>
 #include <vkEasy/nodes/base/PipelineNode.h>
 
 namespace VK_EASY_NAMESPACE {
@@ -11,11 +12,16 @@ public:
 
     ShaderStage& getVertexShaderStage();
     ShaderStage& getFragmentShaderStage();
+    void setFramebuffer(Framebuffer& framebuffer);
+    Descriptor* setInputAttachment(AttachmentImage* attachment, size_t attachmentIndex, size_t binding, size_t set);
+    void setColorAttachment(AttachmentImage* attachment, size_t layout);
+    void setDepthStencilAttachment(AttachmentImage* attachment);
 
 protected:
     GraphicsNode();
-    void update(Device* device);
-    void buildPipeline(vk::easy::Device* device);
+    void update();
+    void buildPipeline();
+    void inOrder();
 
 private:
     vk::PipelineColorBlendAttachmentState m_testAttachment;
@@ -30,12 +36,14 @@ private:
     vk::PipelineColorBlendStateCreateInfo m_colorBlendState;
     vk::PipelineDynamicStateCreateInfo m_dynamicState;
     std::vector<vk::DynamicState> m_dynamicStates;
-    vk::RenderPassBeginInfo m_renderPassBeginInfo;
 
-    vk::RenderPassCreateInfo m_renderPassCreateInfo;
-    std::unique_ptr<vk::raii::RenderPass> m_renderPass;
+    Framebuffer* m_framebuffer = nullptr;
 
-    std::set<Resource*> m_colorAttachments;
+    vk::AttachmentReference m_depthStencilAttachment;
+    std::vector<vk::AttachmentReference> m_colorAttachments;
+    std::vector<vk::AttachmentReference> m_inputAttachments;
+    vk::SubpassDescription m_subpassDescription;
+    size_t m_subpassIndex;
 
     vk::GraphicsPipelineCreateInfo m_graphicsPipelineCreateInfo;
 };

@@ -1,5 +1,5 @@
 #include <iostream>
-#include <vkEasy/Device.h>
+#include <vkEasy/Graph.h>
 #include <vkEasy/nodes/BufferCopyNode.h>
 #include <vkEasy/nodes/MemoryWriteNode.h>
 #include <vkEasy/resources/StagingBuffer.h>
@@ -12,7 +12,7 @@ MemoryWriteNode::MemoryWriteNode()
     m_neededQueueTypes = vk::QueueFlagBits::eTransfer;
 }
 
-void MemoryWriteNode::update(Device* device)
+void MemoryWriteNode::update()
 {
     if (m_updateData) {
         if (!m_stagingBuffer)

@@ -22,7 +22,25 @@ VkImage Image::getVkImage()
 
 void Image::create()
 {
-    m_vmaResource = m_device->getAllocator()->createImage(m_imageCreateInfo, m_allocInfo);
+    m_vmaResource = getDevice()->getAllocator()->createImage(m_imageCreateInfo, m_allocInfo);
+    vk::ImageViewCreateInfo viewCreateInfo;
+    vk::ComponentMapping components;
+    components.setR(vk::ComponentSwizzle::eIdentity)
+        .setG(vk::ComponentSwizzle::eIdentity)
+        .setB(vk::ComponentSwizzle::eIdentity)
+        .setA(vk::ComponentSwizzle::eIdentity);
+    vk::ImageSubresourceRange subresourceRange;
+    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor)
+        .setBaseMipLevel(0)
+        .setLevelCount(1)
+        .setBaseArrayLayer(0)
+        .setLayerCount(1);
+    viewCreateInfo.setImage(getVkImage())
+        .setFormat(getFormat())
+        .setViewType(vk::ImageViewType::e2D)
+        .setComponents(components)
+        .setSubresourceRange(subresourceRange);
+    m_view = std::make_unique<vk::raii::ImageView>(*getDevice()->getLogicalDevice(), viewCreateInfo);
 }
 
 void Image::setDimensionality(const vk::ImageType& dimensionality)
@@ -69,13 +87,13 @@ uint32_t Image::getMipLevels()
     return m_imageCreateInfo.mipLevels;
 }
 
-void Image::setArrayLevels(uint32_t arrayLevels)
+void Image::setArrayLayers(uint32_t arrayLayers)
 {
     m_recreateResource = true;
-    m_imageCreateInfo.setArrayLayers(arrayLevels);
+    m_imageCreateInfo.setArrayLayers(arrayLayers);
 }
 
-uint32_t Image::getArrayLevels()
+uint32_t Image::getArrayLayers()
 {
     return m_imageCreateInfo.arrayLayers;
 }
@@ -100,4 +118,9 @@ void Image::setImageTiling(const vk::ImageTiling& imageTiling)
 vk::ImageTiling Image::getImageTiling()
 {
     return m_imageCreateInfo.tiling;
+}
+
+vk::raii::ImageView* Image::getVkImageView(uint32_t imageIndex)
+{
+    return m_view.get();
 }

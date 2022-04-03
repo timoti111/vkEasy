@@ -7,12 +7,13 @@ using namespace VK_EASY_NAMESPACE;
 
 Node::Node(const std::string& nodeName)
     : Errorable(nodeName)
+    , Object()
 {
 }
 
 void Node::uses(Resource* resource, Resource::Access access)
 {
-    if (resource->m_graph->m_device != m_graph->m_device || m_graph->m_compiled)
+    if (resource->getDevice() != getDevice())
         return; // TODO Error
     if (access == Resource::Access::ReadOnly && !m_writes.contains(resource))
         m_reads.insert(resource);
@@ -31,7 +32,7 @@ void Node::addExecutionBarrier(vk::PipelineStageFlagBits src, vk::PipelineStageF
     std ::cout << "Adding execution barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst)
                << " }" << std::endl;
 #endif
-    auto buffers = m_device->getUniversalCommandBuffers(1);
+    auto buffers = getDevice()->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, {}, {});
@@ -51,7 +52,7 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
         .setDstAccessMask(dstMask)
         .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
         .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-    auto buffers = m_device->getUniversalCommandBuffers(1);
+    auto buffers = getDevice()->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, bufferBarrier, {});
@@ -71,8 +72,8 @@ void Node::addEvent(std::function<void()> event, vk::PipelineStageFlagBits after
 #ifndef NDEBUG
     std::cout << "Adding event after { " << vk::to_string(afterStage) << " }" << std::endl;
 #endif
-    auto vkEvent = m_graph->createEvent(event);
-    auto buffers = m_device->getUniversalCommandBuffers(1);
+    auto vkEvent = getGraph()->createEvent(event);
+    auto buffers = getDevice()->getUniversalCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->setEvent(**vkEvent, afterStage);
@@ -80,11 +81,6 @@ void Node::addEvent(std::function<void()> event, vk::PipelineStageFlagBits after
 
 void Node::execute()
 {
-    for (auto& create : m_creates) {
-        if (!create->exists())
-            create->update();
-    }
-
     for (auto& read : m_reads) {
         if (!read->exists())
             read->update();
@@ -108,7 +104,7 @@ void Node::execute()
     std::cout << "Executing { " << objectName() << " }" << std::endl;
 #endif
 
-    update(m_device);
+    update();
 
     if (m_pipelineStage != vk::PipelineStageFlagBits::eNoneKHR) {
         for (auto& create : m_creates)
@@ -118,22 +114,6 @@ void Node::execute()
         for (auto& write : m_writes)
             write->m_lastAccess = Resource::AccessInfo { Resource::Access::ReadWrite, this };
     }
-}
-
-Graph* Node::getGraph()
-{
-    return m_graph;
-}
-
-Device* Node::getDevice()
-{
-    return m_graph->m_device;
-}
-
-void Node::setGraph(Graph* graph)
-{
-    m_graph = graph;
-    m_device = graph->m_device;
 }
 
 void Node::needsExtensions(const std::initializer_list<std::string>& extensions)

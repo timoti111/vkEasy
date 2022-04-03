@@ -17,7 +17,7 @@ public:
 
 protected:
     MemoryReadNode();
-    void update(Device* device);
+    void update();
 
 private:
     const std::vector<uint8_t>& getData();
