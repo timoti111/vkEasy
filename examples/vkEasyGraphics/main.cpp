@@ -25,7 +25,7 @@ int main()
     graph.compile();
 
     while (!window.shouldClose())
-        graph.execute(false);
+        graph.execute();
     device.wait();
 
     return 0;

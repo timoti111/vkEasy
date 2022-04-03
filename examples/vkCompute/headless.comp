@@ -9,17 +9,17 @@ layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 layout (constant_id = 0) const uint BUFFER_ELEMENTS = 32;
 
 uint fibonacci(uint n) {
-	if(n <= 1){
+	if(n <= 1)
 		return n;
-	}
-	uint curr = 2;
+	uint prevPrev = 0;
 	uint prev = 1;
-	for(uint i = 2; i < n; ++i) {
-		uint temp = curr;
-		curr += prev;
-		prev = temp;
+	uint result = 0;
+	for (uint i = 2; i <= n; i++) {
+		result = prev + prevPrev;
+		prevPrev = prev;
+		prev = result;
 	}
-	return curr;
+	return result;
 }
 
 void main() 
@@ -29,4 +29,3 @@ void main()
 		return;	
 	values[index] = fibonacci(values[index]);
 }
-
