@@ -45,5 +45,6 @@ private:
     WSI* m_wsi = nullptr;
     size_t m_references = 0;
     size_t m_runtimeReferences = 0;
+    vk::Rect2D m_renderArea;
 };
 } // namespace VK_EASY_NAMESPACE

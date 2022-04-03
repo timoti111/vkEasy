@@ -18,6 +18,7 @@ void Framebuffer::begin(vk::raii::CommandBuffer* commandBuffer)
 {
     if (m_runtimeReferences == 0) {
         m_renderPassBeginInfo.setFramebuffer(**m_frameBuffers[getGraph()->getImageIndex()]);
+        m_renderPassBeginInfo.setRenderArea(m_renderArea);
         commandBuffer->beginRenderPass(m_renderPassBeginInfo, vk::SubpassContents::eInline);
     }
     m_runtimeReferences++;
@@ -64,6 +65,7 @@ void Framebuffer::build()
     if (m_wsi) {
         auto resolution = m_wsi->resolution();
         m_framebufferCreateInfo.setWidth(resolution.width).setHeight(resolution.height);
+        m_renderArea.setExtent(resolution);
     }
 
     m_attachmentViews.resize(getGraph()->getFrames());
@@ -95,6 +97,7 @@ void Framebuffer::setResolution(size_t width, size_t height)
 {
     m_framebufferCreateInfo.setWidth(width);
     m_framebufferCreateInfo.setHeight(height);
+    m_renderArea.setExtent(vk::Extent2D(width, height));
 }
 
 void Framebuffer::setWindow(WSI& window)

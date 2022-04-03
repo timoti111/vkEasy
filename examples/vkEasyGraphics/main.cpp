@@ -26,7 +26,6 @@ int main()
 
     while (!window.shouldClose())
         graph.execute();
-    device.wait();
 
     return 0;
 }
