@@ -19,8 +19,9 @@ protected:
     void getData(std::vector<uint8_t>& data, size_t offset = 0);
 
     void update() override;
+    void setUpdateData(bool update);
 
     std::vector<uint8_t> m_data;
-    bool m_updateData = false;
+    std::map<size_t, bool> m_updateData;
 };
 }

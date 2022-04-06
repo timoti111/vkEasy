@@ -44,8 +44,8 @@ protected:
     std::unique_ptr<vk::raii::PipelineLayout> m_pipelineLayout;
 
     std::function<void()> m_basePipelineUpdateFunction;
-    bool m_needsRebuild = true;
     bool m_pipelineRebuild = true;
+    bool m_pipelineLayoutRebuild = true;
     std::map<size_t, std::map<size_t, Descriptor>> m_layout;
     std::vector<vk::DescriptorPoolSize> m_poolSizes;
     std::vector<vk::WriteDescriptorSet> m_writeDescriptorSets;

@@ -38,9 +38,12 @@ public:
 protected:
     Image();
     virtual void create();
+    void createView(size_t index);
 
     vk::ImageUsageFlags m_imageUsageFlags;
     vk::ImageCreateInfo m_imageCreateInfo;
-    std::unique_ptr<vk::raii::ImageView> m_view;
+
+    std::map<size_t, VkImage> m_images;
+    std::map<size_t, std::unique_ptr<vk::raii::ImageView>> m_views;
 };
 }

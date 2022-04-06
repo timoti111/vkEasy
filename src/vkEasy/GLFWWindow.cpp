@@ -30,9 +30,14 @@ GLFWWindow::GLFWWindow(uint32_t width, uint32_t height, const std::string& title
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     m_handle = glfwCreateWindow(m_extent.width, m_extent.height, m_name.c_str(), nullptr, nullptr);
+    glfwSetWindowUserPointer(m_handle, this);
+    glfwSetFramebufferSizeCallback(m_handle, [](GLFWwindow* window, int width, int height) {
+        auto wsi = reinterpret_cast<GLFWWindow*>(glfwGetWindowUserPointer(window));
+        wsi->recreateSwapchain();
+    });
 }
 
-vk::Extent2D GLFWWindow::resolution()
+vk::Extent2D GLFWWindow::osWindowResolution()
 {
     int width, height;
     glfwGetFramebufferSize(m_handle, &width, &height);

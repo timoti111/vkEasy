@@ -5,6 +5,7 @@
 namespace VK_EASY_NAMESPACE {
 class GraphicsNode : public PipelineNode {
     friend class Graph;
+    friend class Framebuffer;
 
 public:
     GraphicsNode(GraphicsNode const&) = delete;

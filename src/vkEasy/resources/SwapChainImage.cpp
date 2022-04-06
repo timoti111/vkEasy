@@ -12,25 +12,15 @@ SwapChainImage::SwapChainImage()
     setPersistence(true);
 }
 
-VkImage SwapChainImage::getVkImage()
-{
-    return m_images[0];
-}
-
-vk::raii::ImageView* SwapChainImage::getVkImageView(uint32_t imageIndex)
-{
-    return m_views[imageIndex].get();
-}
-
-void SwapChainImage::destroy()
-{
-}
-
 void SwapChainImage::update()
 {
-    if (m_swapChain)
+    if (m_swapChain && !m_recreate)
         return;
 
+    getDevice()->wait();
+
+    m_swapChain.reset();
+    m_views.clear();
     vk::raii::PhysicalDevice* device = getDevice()->getPhysicalDevice();
     auto capabilities = device->getSurfaceCapabilitiesKHR(**m_window->m_surface);
     auto formats = device->getSurfaceFormatsKHR(**m_window->m_surface);
@@ -46,7 +36,7 @@ void SwapChainImage::update()
     if (!found)
         m_swapChainCreateInfo.setImageFormat(formats[0].format).setImageColorSpace(formats[0].colorSpace);
 
-    auto resolution = m_window->resolution();
+    auto resolution = m_window->osWindowResolution();
     resolution.width
         = std::clamp(resolution.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
     resolution.height
@@ -60,39 +50,21 @@ void SwapChainImage::update()
         .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)
         .setPreTransform(capabilities.currentTransform)
         .setSurface(**m_window->m_surface)
-        .setImageExtent(resolution)
-        .setPresentMode(vk::PresentModeKHR::eFifo);
-
+        .setImageExtent(resolution);
     m_swapChain = std::make_unique<vk::raii::SwapchainKHR>(*getDevice()->getLogicalDevice(), m_swapChainCreateInfo);
-
-    m_images = m_swapChain->getImages();
     setFormat(m_swapChainCreateInfo.imageFormat);
     vk::Extent3D extent(m_swapChainCreateInfo.imageExtent);
     setDimensions(extent);
     setArrayLayers(m_swapChainCreateInfo.imageArrayLayers);
     setSamplesPerTexel(vk::SampleCountFlagBits::e1);
-
-    vk::ImageViewCreateInfo viewCreateInfo;
-    vk::ComponentMapping components;
-    components.setR(vk::ComponentSwizzle::eIdentity)
-        .setG(vk::ComponentSwizzle::eIdentity)
-        .setB(vk::ComponentSwizzle::eIdentity)
-        .setA(vk::ComponentSwizzle::eIdentity);
-    vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor)
-        .setBaseMipLevel(0)
-        .setLevelCount(1)
-        .setBaseArrayLayer(0)
-        .setLayerCount(1);
-    viewCreateInfo.setFormat(getFormat())
-        .setViewType(vk::ImageViewType::e2D)
-        .setComponents(components)
-        .setSubresourceRange(subresourceRange);
-
-    for (auto& image : m_images) {
-        viewCreateInfo.setImage(image);
-        m_views.push_back(std::make_unique<vk::raii::ImageView>(*getDevice()->getLogicalDevice(), viewCreateInfo));
+    auto images = m_swapChain->getImages();
+    for (size_t i = 0; i < images.size(); i++) {
+        m_images[i] = images[i];
+        createView(i);
     }
+    m_window->setSwapchainResolution(m_swapChainCreateInfo.imageExtent);
+
+    m_recreate = false;
 }
 
 bool SwapChainImage::exists()
@@ -103,4 +75,9 @@ bool SwapChainImage::exists()
 uint32_t SwapChainImage::getNumberOfFramesInFlight()
 {
     return m_images.size();
+}
+
+void SwapChainImage::recreate()
+{
+    m_recreate = true;
 }

@@ -7,10 +7,10 @@ PipelineNode::PipelineNode(const std::string& nodeName)
     : Node(nodeName)
 {
     m_basePipelineUpdateFunction = [this]() {
-        if (m_pipelineRebuild)
+        if (m_pipelineLayoutRebuild)
             build();
 
-        if (m_needsRebuild || m_pipelineRebuild) {
+        if (m_pipelineRebuild || m_pipelineLayoutRebuild) {
             vk::PipelineCacheCreateInfo pipelineCacheCreateInfo;
             m_pipelineCache
                 = std::make_unique<vk::raii::PipelineCache>(*getDevice()->getLogicalDevice(), pipelineCacheCreateInfo);
@@ -19,8 +19,8 @@ PipelineNode::PipelineNode(const std::string& nodeName)
             buildPipeline();
         }
 
-        m_needsRebuild = false;
         m_pipelineRebuild = false;
+        m_pipelineLayoutRebuild = false;
     };
 }
 
@@ -117,7 +117,7 @@ void PipelineNode::build()
 
 Descriptor* PipelineNode::createDescriptor(std::vector<Resource*> resources, size_t binding, size_t set)
 {
-    m_pipelineRebuild = true;
+    m_pipelineLayoutRebuild = true;
     Descriptor descriptor;
     for (auto& resource : resources) {
         Node::uses(resource);
@@ -137,5 +137,5 @@ ShaderStage* PipelineNode::getShaderStage(const vk::ShaderStageFlagBits& stage)
 
 void PipelineNode::needsRebuild()
 {
-    m_needsRebuild = true;
+    m_pipelineRebuild = true;
 }

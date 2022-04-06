@@ -34,17 +34,18 @@ private:
 
     vk::RenderPassBeginInfo m_renderPassBeginInfo;
 
-    std::vector<vk::SubpassDescription*> m_subpasses;
     vk::RenderPassCreateInfo m_renderPassCreateInfo;
     std::unique_ptr<vk::raii::RenderPass> m_renderPass;
 
-    std::vector<std::vector<vk::ImageView>> m_attachmentViews;
-    std::vector<std::unique_ptr<vk::raii::Framebuffer>> m_frameBuffers;
+    std::map<size_t, std::vector<vk::ImageView>> m_attachmentViews;
+    std::map<size_t, std::unique_ptr<vk::raii::Framebuffer>> m_frameBuffers;
     vk::FramebufferCreateInfo m_framebufferCreateInfo;
+    std::vector<GraphicsNode*> m_subpassNodes;
 
     WSI* m_wsi = nullptr;
     size_t m_references = 0;
     size_t m_runtimeReferences = 0;
     vk::Rect2D m_renderArea;
+    bool m_needsRecreation = false;
 };
 } // namespace VK_EASY_NAMESPACE

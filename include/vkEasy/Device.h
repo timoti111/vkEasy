@@ -21,16 +21,16 @@ public:
     MemoryAllocator* getAllocator();
 
     void sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fence = nullptr);
-    void present(vk::PresentInfoKHR* presentInfo);
+    vk::Result present(vk::PresentInfoKHR* presentInfo);
     void resetCommandBuffers();
     void wait();
     std::vector<vk::raii::CommandBuffer*> getUniversalCommandBuffers(size_t count);
+    void initialize();
 
 private:
     Device() = delete;
     Device(vk::raii::PhysicalDevice* device);
     void findPhysicalDevice();
-    void initialize();
     void initializeVMA();
 
     std::vector<char const*> m_requiredExtensionsVkCompatible;
@@ -48,7 +48,7 @@ private:
 
         std::vector<vk::raii::CommandBuffer*> getCommandBuffers(size_t count, vk::raii::Device* device);
         void sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fence = nullptr);
-        void present(vk::PresentInfoKHR* presentInfo);
+        vk::Result present(vk::PresentInfoKHR* presentInfo);
         void resetCommandBuffers();
         void waitIdle();
     };

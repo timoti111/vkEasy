@@ -22,3 +22,25 @@ AttachmentImage* WSI::getAttachment()
 {
     return m_swapChain;
 }
+
+void WSI::onResolutionChanged(std::function<void(const vk::Extent2D&)> event)
+{
+    m_resolutionChangedEvents.push_back(event);
+}
+
+vk::Extent2D WSI::resolution()
+{
+    return m_extent;
+}
+
+void WSI::setSwapchainResolution(const vk::Extent2D& resoution)
+{
+    m_extent = resoution;
+    for (auto& f : m_resolutionChangedEvents)
+        f(m_extent);
+}
+
+void WSI::recreateSwapchain()
+{
+    m_swapChain->recreate();
+}

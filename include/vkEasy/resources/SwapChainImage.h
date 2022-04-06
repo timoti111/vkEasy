@@ -14,22 +14,18 @@ class SwapChainImage : public AttachmentImage {
 public:
     SwapChainImage(SwapChainImage const&) = delete;
     void operator=(SwapChainImage const&) = delete;
-    VkImage getVkImage();
-    virtual vk::raii::ImageView* getVkImageView(uint32_t imageIndex) override;
 
 protected:
     SwapChainImage();
 
-    void destroy();
     virtual void update();
     virtual bool exists();
+    void recreate();
     uint32_t getNumberOfFramesInFlight();
 
 private:
-    std::vector<VkImage> m_images;
-    std::vector<std::unique_ptr<vk::raii::ImageView>> m_views;
-
     WSI* m_window;
+    bool m_recreate = false;
     std::unique_ptr<vk::raii::SwapchainKHR> m_swapChain;
     vk::SwapchainCreateInfoKHR m_swapChainCreateInfo;
     vk::SurfaceCapabilitiesKHR m_surfaceCapabilities;

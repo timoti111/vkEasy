@@ -53,8 +53,6 @@ void GraphicsNode::buildPipeline()
     std::vector<vk::PipelineShaderStageCreateInfo> stageInfos;
     for (auto& [key, element] : m_stages)
         stageInfos.push_back(*element->getPipelineShaderStageCreateInfo());
-    m_subpassDescription.setColorAttachments(m_colorAttachments).setInputAttachments(m_inputAttachments);
-    m_framebuffer->m_subpasses.push_back(&m_subpassDescription);
     m_framebuffer->build();
 
     vk::Viewport viewport;
@@ -93,6 +91,7 @@ void GraphicsNode::inOrder()
 {
     m_subpassIndex = m_framebuffer->m_references;
     m_framebuffer->m_references++;
+    m_framebuffer->m_subpassNodes.push_back(this);
 }
 
 Descriptor* GraphicsNode::setInputAttachment(
@@ -101,6 +100,7 @@ Descriptor* GraphicsNode::setInputAttachment(
     if (attachmentIndex + 1 > m_inputAttachments.size())
         m_inputAttachments.resize(attachmentIndex + 1);
     m_inputAttachments[attachmentIndex].setAttachment(attachment->getIndex());
+    m_subpassDescription.setInputAttachments(m_inputAttachments);
     return createDescriptor({ attachment }, binding, set);
 }
 
@@ -111,6 +111,7 @@ void GraphicsNode::setColorAttachment(AttachmentImage* attachment, size_t layout
     m_colorAttachments[layout]
         .setAttachment(attachment->getIndex())
         .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+    m_subpassDescription.setColorAttachments(m_colorAttachments);
     uses(attachment, Resource::Access::ReadWrite);
 }
 

@@ -1,4 +1,5 @@
 #pragma once
+#include <map>
 #include <optional>
 #include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/Utils.h>
@@ -33,26 +34,25 @@ public:
 protected:
     Resource() = default;
 
-    void setMemoryUsage(VmaMemoryUsage flag);
-    virtual void create() = 0;
-    void destroy();
-    virtual void update();
-    virtual bool exists();
-
-    virtual void setOptimization(OptimizationFlags optimization);
-
-    VmaAllocationCreateInfo m_allocInfo;
-
     struct AccessInfo {
         Access access;
         Node* node;
     };
 
-    std::optional<AccessInfo> m_lastAccess;
+    void setMemoryUsage(VmaMemoryUsage flag);
+    virtual void create() = 0;
+    void destroy();
+    virtual void update();
+    virtual bool exists();
+    size_t getActualFrameIndex();
+    void setRecreateResource(bool recreate);
+    std::optional<AccessInfo>& getLastAccess();
+    virtual void setOptimization(OptimizationFlags optimization);
+
+    VmaAllocationCreateInfo m_allocInfo;
 
     vk::DescriptorType m_descriptorType;
     bool m_isBuffer = false;
-    bool m_recreateResource = false;
 
     // Graph compilation members
     Node* m_creator = nullptr;
@@ -61,6 +61,8 @@ protected:
     size_t m_referenceCount;
     bool m_isPersistent = false;
 
-    std::unique_ptr<MemoryAllocator::Resource> m_vmaResource;
+    std::map<size_t, std::optional<AccessInfo>> m_lastAccess;
+    std::map<size_t, bool> m_recreateResource;
+    std::map<size_t, std::unique_ptr<MemoryAllocator::Resource>> m_vmaResource;
 };
 }

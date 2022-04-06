@@ -11,18 +11,106 @@ Image::Image()
 
 void Image::addImageUsageFlag(vk::ImageUsageFlagBits flag)
 {
-    m_recreateResource = true;
+    setRecreateResource(true);
     m_imageCreateInfo.setUsage(m_imageCreateInfo.usage | flag);
 }
 
 VkImage Image::getVkImage()
 {
-    return **dynamic_cast<MemoryAllocator::Image*>(m_vmaResource.get());
+    return m_images[getActualFrameIndex()];
 }
 
 void Image::create()
 {
-    m_vmaResource = getDevice()->getAllocator()->createImage(m_imageCreateInfo, m_allocInfo);
+    m_vmaResource[getActualFrameIndex()] = getDevice()->getAllocator()->createImage(m_imageCreateInfo, m_allocInfo);
+    m_images[getActualFrameIndex()]
+        = **dynamic_cast<MemoryAllocator::Image*>(m_vmaResource[getActualFrameIndex()].get());
+}
+
+void Image::setDimensionality(const vk::ImageType& dimensionality)
+{
+    setRecreateResource(true);
+    m_imageCreateInfo.setImageType(dimensionality);
+}
+
+vk::ImageType Image::getDimensionality()
+{
+    return m_imageCreateInfo.imageType;
+}
+
+void Image::setDimensions(const vk::Extent3D& dimensions)
+{
+    setRecreateResource(true);
+    m_imageCreateInfo.setExtent(dimensions);
+}
+
+vk::Extent3D Image::getDimensions()
+{
+    return m_imageCreateInfo.extent;
+}
+
+void Image::setFormat(const vk::Format& format)
+{
+    setRecreateResource(true);
+    m_imageCreateInfo.setFormat(format);
+}
+
+vk::Format Image::getFormat()
+{
+    return m_imageCreateInfo.format;
+}
+
+void Image::setMipLevels(uint32_t mipLevels)
+{
+    setRecreateResource(true);
+    m_imageCreateInfo.setMipLevels(mipLevels);
+}
+
+uint32_t Image::getMipLevels()
+{
+    return m_imageCreateInfo.mipLevels;
+}
+
+void Image::setArrayLayers(uint32_t arrayLayers)
+{
+    setRecreateResource(true);
+    m_imageCreateInfo.setArrayLayers(arrayLayers);
+}
+
+uint32_t Image::getArrayLayers()
+{
+    return m_imageCreateInfo.arrayLayers;
+}
+
+void Image::setSamplesPerTexel(const vk::SampleCountFlagBits& samplesPerTexel)
+{
+    setRecreateResource(true);
+    m_imageCreateInfo.setSamples(samplesPerTexel);
+}
+
+vk::SampleCountFlagBits Image::getSamplesPerTexel()
+{
+    return m_imageCreateInfo.samples;
+}
+
+void Image::setImageTiling(const vk::ImageTiling& imageTiling)
+{
+    setRecreateResource(true);
+    m_imageCreateInfo.setTiling(imageTiling);
+}
+
+vk::ImageTiling Image::getImageTiling()
+{
+    return m_imageCreateInfo.tiling;
+}
+
+vk::raii::ImageView* Image::getVkImageView(uint32_t imageIndex)
+{
+    return m_views[imageIndex].get();
+}
+
+void Image::createView(size_t index)
+{
     vk::ImageViewCreateInfo viewCreateInfo;
     vk::ComponentMapping components;
     components.setR(vk::ComponentSwizzle::eIdentity)
@@ -35,92 +123,10 @@ void Image::create()
         .setLevelCount(1)
         .setBaseArrayLayer(0)
         .setLayerCount(1);
-    viewCreateInfo.setImage(getVkImage())
-        .setFormat(getFormat())
+    viewCreateInfo.setFormat(getFormat())
         .setViewType(vk::ImageViewType::e2D)
         .setComponents(components)
-        .setSubresourceRange(subresourceRange);
-    m_view = std::make_unique<vk::raii::ImageView>(*getDevice()->getLogicalDevice(), viewCreateInfo);
-}
-
-void Image::setDimensionality(const vk::ImageType& dimensionality)
-{
-    m_recreateResource = true;
-    m_imageCreateInfo.setImageType(dimensionality);
-}
-
-vk::ImageType Image::getDimensionality()
-{
-    return m_imageCreateInfo.imageType;
-}
-
-void Image::setDimensions(const vk::Extent3D& dimensions)
-{
-    m_recreateResource = true;
-    m_imageCreateInfo.setExtent(dimensions);
-}
-
-vk::Extent3D Image::getDimensions()
-{
-    return m_imageCreateInfo.extent;
-}
-
-void Image::setFormat(const vk::Format& format)
-{
-    m_recreateResource = true;
-    m_imageCreateInfo.setFormat(format);
-}
-
-vk::Format Image::getFormat()
-{
-    return m_imageCreateInfo.format;
-}
-
-void Image::setMipLevels(uint32_t mipLevels)
-{
-    m_recreateResource = true;
-    m_imageCreateInfo.setMipLevels(mipLevels);
-}
-
-uint32_t Image::getMipLevels()
-{
-    return m_imageCreateInfo.mipLevels;
-}
-
-void Image::setArrayLayers(uint32_t arrayLayers)
-{
-    m_recreateResource = true;
-    m_imageCreateInfo.setArrayLayers(arrayLayers);
-}
-
-uint32_t Image::getArrayLayers()
-{
-    return m_imageCreateInfo.arrayLayers;
-}
-
-void Image::setSamplesPerTexel(const vk::SampleCountFlagBits& samplesPerTexel)
-{
-    m_recreateResource = true;
-    m_imageCreateInfo.setSamples(samplesPerTexel);
-}
-
-vk::SampleCountFlagBits Image::getSamplesPerTexel()
-{
-    return m_imageCreateInfo.samples;
-}
-
-void Image::setImageTiling(const vk::ImageTiling& imageTiling)
-{
-    m_recreateResource = true;
-    m_imageCreateInfo.setTiling(imageTiling);
-}
-
-vk::ImageTiling Image::getImageTiling()
-{
-    return m_imageCreateInfo.tiling;
-}
-
-vk::raii::ImageView* Image::getVkImageView(uint32_t imageIndex)
-{
-    return m_view.get();
+        .setSubresourceRange(subresourceRange)
+        .setImage(m_images[index]);
+    m_views[index] = std::make_unique<vk::raii::ImageView>(*getDevice()->getLogicalDevice(), viewCreateInfo);
 }

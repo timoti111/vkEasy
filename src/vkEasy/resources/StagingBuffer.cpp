@@ -1,4 +1,5 @@
 #include <vkEasy/Device.h>
+#include <vkEasy/Graph.h>
 #include <vkEasy/resources/StagingBuffer.h>
 
 using namespace VK_EASY_NAMESPACE;
@@ -11,27 +12,31 @@ StagingBuffer::StagingBuffer()
 
 void StagingBuffer::setData(const std::vector<uint8_t>& data)
 {
-    m_updateData = true;
+    setUpdateData(true);
     m_data = data;
     setSize(m_data.size());
 }
 
 void StagingBuffer::getData(std::vector<uint8_t>& data, size_t offset)
 {
-    auto mapped = reinterpret_cast<uint8_t*>(m_vmaResource->mapMemory());
+    auto mapped = reinterpret_cast<uint8_t*>(m_vmaResource[getActualFrameIndex()]->mapMemory());
     memcpy(data.data(), mapped + offset, data.size());
-    m_vmaResource->unmapMemory();
+    m_vmaResource[getActualFrameIndex()]->unmapMemory();
 }
 
 void StagingBuffer::update()
 {
     Buffer::update();
 
-    if (m_updateData) {
-        void* mapped = m_vmaResource->mapMemory();
+    if (m_updateData[getActualFrameIndex()]) {
+        void* mapped = m_vmaResource[getActualFrameIndex()]->mapMemory();
         memcpy(mapped, m_data.data(), m_data.size());
-        m_vmaResource->unmapMemory();
+        m_vmaResource[getActualFrameIndex()]->unmapMemory();
+        m_updateData[getActualFrameIndex()] = false;
     }
-
-    m_updateData = false;
+}
+void StagingBuffer::setUpdateData(bool update)
+{
+    for (size_t i = 0; i < m_updateData.size(); i++)
+        m_updateData[i] = update;
 }

@@ -21,5 +21,6 @@ protected:
 
     vk::BufferUsageFlags m_bufferUsageFlags;
     vk::BufferCreateInfo m_bufferCreateInfo;
+    std::vector<VkBuffer> m_buffers;
 };
 }

@@ -60,7 +60,7 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
 
 void Node::addResourceEvent(std::function<void()> event, Resource* resource)
 {
-    auto& lastAccess = resource->m_lastAccess;
+    auto& lastAccess = resource->getLastAccess();
     auto stage = lastAccess ? lastAccess->node->m_pipelineStage : vk::PipelineStageFlagBits::eNone;
     addEvent(event, stage);
 }
@@ -84,7 +84,7 @@ void Node::execute()
     for (auto& read : m_reads) {
         if (!read->exists())
             read->update();
-        auto& lastAccess = read->m_lastAccess;
+        auto& lastAccess = read->getLastAccess();
         if (!lastAccess)
             continue;
         if (lastAccess->access == Resource::Access::ReadWrite)
@@ -94,7 +94,7 @@ void Node::execute()
     for (auto& write : m_writes) {
         if (!write->exists())
             write->update();
-        auto& lastAccess = write->m_lastAccess;
+        auto& lastAccess = write->getLastAccess();
         if (!lastAccess)
             continue;
         addExecutionBarrier(lastAccess->node->m_pipelineStage, m_pipelineStage);
@@ -108,11 +108,11 @@ void Node::execute()
 
     if (m_pipelineStage != vk::PipelineStageFlagBits::eNoneKHR) {
         for (auto& create : m_creates)
-            create->m_lastAccess = Resource::AccessInfo { Resource::Access::ReadWrite, this };
+            create->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadWrite, this };
         for (auto& read : m_reads)
-            read->m_lastAccess = Resource::AccessInfo { Resource::Access::ReadOnly, this };
+            read->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadOnly, this };
         for (auto& write : m_writes)
-            write->m_lastAccess = Resource::AccessInfo { Resource::Access::ReadWrite, this };
+            write->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadWrite, this };
     }
 }
 

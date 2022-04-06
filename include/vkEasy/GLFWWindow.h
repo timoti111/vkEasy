@@ -17,9 +17,9 @@ public:
 
     virtual bool shouldClose() override;
     virtual void pollEvents() override;
-    virtual vk::Extent2D resolution() override;
 
 protected:
+    virtual vk::Extent2D osWindowResolution() override;
     virtual void createSurface() override;
 
 private:

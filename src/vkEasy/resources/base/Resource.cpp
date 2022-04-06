@@ -1,3 +1,4 @@
+#include <vkEasy/Graph.h>
 #include <vkEasy/resources/base/Resource.h>
 
 using namespace VK_EASY_NAMESPACE;
@@ -24,7 +25,7 @@ vk::DescriptorType Resource::getDescriptorType()
 
 MemoryAllocator::Resource& Resource::getMemory()
 {
-    return *m_vmaResource.get();
+    return *m_vmaResource[getActualFrameIndex()].get();
 }
 
 void Resource::setOptimization(OptimizationFlags optimization)
@@ -36,23 +37,41 @@ void Resource::setOptimization(OptimizationFlags optimization)
 
 bool Resource::exists()
 {
-    return static_cast<bool>(m_vmaResource);
+    return static_cast<bool>(m_vmaResource[getActualFrameIndex()]);
 }
 
 void Resource::update()
 {
-    if (!exists() || m_recreateResource)
+    if (!exists() || m_recreateResource[getActualFrameIndex()]) {
+        m_lastAccess[getActualFrameIndex()].reset();
         create();
-    m_recreateResource = false;
+    }
+    m_recreateResource[getActualFrameIndex()] = false;
 }
 
 void Resource::destroy()
 {
-    m_lastAccess.reset();
-    m_vmaResource.reset();
+    m_lastAccess[getActualFrameIndex()].reset();
+    m_vmaResource[getActualFrameIndex()].reset();
 }
 
 void Resource::setPersistence(bool persistent)
 {
     m_isPersistent = persistent;
+}
+
+void Resource::setRecreateResource(bool recreate)
+{
+    for (size_t i = 0; i < m_recreateResource.size(); i++)
+        m_recreateResource[i] = recreate;
+}
+
+size_t Resource::getActualFrameIndex()
+{
+    return m_isPersistent ? 0 : getGraph()->getImageIndex();
+}
+
+std::optional<Resource::AccessInfo>& Resource::getLastAccess()
+{
+    return m_lastAccess[getActualFrameIndex()];
 }

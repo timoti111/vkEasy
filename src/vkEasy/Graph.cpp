@@ -147,8 +147,8 @@ void Graph::execute()
         getDevice()->initialize();
 
     if (m_window) {
-        m_window->m_swapChain->update();
         m_window->pollEvents();
+        m_window->m_swapChain->update();
     }
 
     if (!m_compiled)
@@ -167,7 +167,6 @@ void Graph::execute()
     vk::PipelineStageFlags dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
     getDevice()->getLogicalDevice()->waitForFences(**m_inFlightFence, true, UINT64_MAX);
-    getDevice()->getLogicalDevice()->resetFences(**m_inFlightFence);
 
     if (m_window) {
         vk::SemaphoreCreateInfo semaphoreCreateInfo;
@@ -177,12 +176,18 @@ void Graph::execute()
         if (!m_renderFinishedSemaphore)
             m_renderFinishedSemaphore
                 = std::make_unique<vk::raii::Semaphore>(*getDevice()->getLogicalDevice(), semaphoreCreateInfo);
-        m_imageIndex
-            = m_window->m_swapChain->m_swapChain->acquireNextImage(UINT64_MAX, **m_imageAvailableSemaphore).second;
+        auto result = m_window->m_swapChain->m_swapChain->acquireNextImage(UINT64_MAX, **m_imageAvailableSemaphore);
+        m_imageIndex = result.second;
+        if (result.first == vk::Result::eErrorOutOfDateKHR) {
+            m_window->recreateSwapchain();
+            return;
+        }
         submitInfo.setWaitSemaphores(**m_imageAvailableSemaphore)
             .setWaitDstStageMask(dstStageMask)
             .setSignalSemaphores(**m_renderFinishedSemaphore);
     }
+
+    getDevice()->getLogicalDevice()->resetFences(**m_inFlightFence);
     getDevice()->resetCommandBuffers();
 
     m_events.clear();
@@ -196,18 +201,29 @@ void Graph::execute()
 
     getDevice()->sendCommandBuffers(&submitInfo, m_inFlightFence.get());
 
+    for (auto& event : m_events) {
+        while (event.vkEvent->getStatus() != vk::Result::eEventSet)
+            std::this_thread::sleep_for(std::chrono::microseconds(10));
+        event.action();
+    }
+
     if (m_window) {
         vk::PresentInfoKHR presentInfo;
         presentInfo.setImageIndices(m_imageIndex)
             .setSwapchains(**m_window->m_swapChain->m_swapChain)
             .setWaitSemaphores(**m_renderFinishedSemaphore);
-        getDevice()->present(&presentInfo);
-    }
-
-    for (auto& event : m_events) {
-        while (event.vkEvent->getStatus() != vk::Result::eEventSet)
-            std::this_thread::sleep_for(std::chrono::microseconds(10));
-        event.action();
+        bool needsRecreation = false;
+        try {
+            auto result = getDevice()->present(&presentInfo);
+            if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR)
+                needsRecreation = true;
+        } catch (vk::OutOfDateKHRError) {
+            needsRecreation = true;
+        }
+        if (needsRecreation) {
+            m_window->recreateSwapchain();
+            return;
+        }
     }
 
 #ifndef NDEBUG

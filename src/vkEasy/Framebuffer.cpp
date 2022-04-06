@@ -36,6 +36,16 @@ void Framebuffer::end(vk::raii::CommandBuffer* commandBuffer)
 
 void Framebuffer::build()
 {
+    if (!m_needsRecreation)
+        return;
+
+    getDevice()->wait();
+
+    std::vector<vk::SubpassDescription> subpasses;
+    for (auto& node : m_subpassNodes)
+        subpasses.push_back(node->m_subpassDescription);
+
+    m_attachmentDescriptions.clear();
     for (auto& attachment : m_attachments) {
         vk::AttachmentDescription description;
         description.setFormat(attachment->getFormat())
@@ -49,9 +59,6 @@ void Framebuffer::build()
         m_attachmentDescriptions.push_back(description);
     }
 
-    std::vector<vk::SubpassDescription> subpasses;
-    for (auto& subpass : m_subpasses)
-        subpasses.push_back(*subpass);
     vk::SubpassDependency dep;
     dep.setSrcSubpass(VK_SUBPASS_EXTERNAL)
         .setDstSubpass(0)
@@ -68,17 +75,19 @@ void Framebuffer::build()
         m_renderArea.setExtent(resolution);
     }
 
-    m_attachmentViews.resize(getGraph()->getFrames());
+    m_attachmentViews.clear();
+    m_frameBuffers.clear();
     for (size_t i = 0; i < getGraph()->getFrames(); i++) {
         for (auto& attachment : m_attachments)
             m_attachmentViews[i].push_back(**attachment->getVkImageView(i));
 
         m_framebufferCreateInfo.setRenderPass(**m_renderPass).setAttachments(m_attachmentViews[i]).setLayers(1);
-        m_frameBuffers.push_back(
-            std::make_unique<vk::raii::Framebuffer>(*getDevice()->getLogicalDevice(), m_framebufferCreateInfo));
+        m_frameBuffers[i]
+            = std::make_unique<vk::raii::Framebuffer>(*getDevice()->getLogicalDevice(), m_framebufferCreateInfo);
     }
 
     m_renderPassBeginInfo.setRenderPass(**m_renderPass);
+    m_needsRecreation = false;
 }
 
 AttachmentImage* Framebuffer::createAttachment()
@@ -103,6 +112,11 @@ void Framebuffer::setResolution(size_t width, size_t height)
 void Framebuffer::setWindow(WSI& window)
 {
     m_wsi = &window;
+    window.onResolutionChanged([this](const vk::Extent2D&) {
+        m_needsRecreation = true;
+        for (auto& node : m_subpassNodes)
+            node->needsRebuild();
+    });
     initializeAttachment(window.getAttachment());
 }
 

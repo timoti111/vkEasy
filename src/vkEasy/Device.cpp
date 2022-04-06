@@ -192,11 +192,11 @@ void Device::sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fen
             queue->sendCommandBuffers(submitInfo, fence);
 }
 
-void Device::present(vk::PresentInfoKHR* presentInfo)
+vk::Result Device::present(vk::PresentInfoKHR* presentInfo)
 {
     for (auto& queue : m_queues)
         if (queue)
-            queue->present(presentInfo);
+            return queue->present(presentInfo);
 }
 
 void Device::resetCommandBuffers()
@@ -250,9 +250,9 @@ void Device::QueueData::sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii:
         queue->submit(*submitInfo);
 }
 
-void Device::QueueData::present(vk::PresentInfoKHR* presentInfo)
+vk::Result Device::QueueData::present(vk::PresentInfoKHR* presentInfo)
 {
-    queue->presentKHR(*presentInfo);
+    return queue->presentKHR(*presentInfo);
 }
 
 void Device::QueueData::resetCommandBuffers()

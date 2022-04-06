@@ -12,13 +12,13 @@ Buffer::Buffer()
 
 void Buffer::addBufferUsageFlag(vk::BufferUsageFlagBits flag)
 {
-    m_recreateResource = true;
+    setRecreateResource(true);
     m_bufferCreateInfo.setUsage(m_bufferCreateInfo.usage | flag);
 }
 
 VkBuffer Buffer::getVkBuffer()
 {
-    return **dynamic_cast<MemoryAllocator::Buffer*>(m_vmaResource.get());
+    return m_buffers[getActualFrameIndex()];
 }
 
 size_t Buffer::getSize()
@@ -28,11 +28,13 @@ size_t Buffer::getSize()
 
 void Buffer::setSize(size_t size)
 {
-    m_recreateResource = true;
+    setRecreateResource(true);
     m_bufferCreateInfo.setSize(size);
 }
 
 void Buffer::create()
 {
-    m_vmaResource = getDevice()->getAllocator()->createBuffer(m_bufferCreateInfo, m_allocInfo);
+    m_vmaResource[getActualFrameIndex()] = getDevice()->getAllocator()->createBuffer(m_bufferCreateInfo, m_allocInfo);
+    m_buffers[getActualFrameIndex()]
+        = **dynamic_cast<MemoryAllocator::Buffer*>(m_vmaResource[getActualFrameIndex()].get());
 }
