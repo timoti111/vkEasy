@@ -37,6 +37,6 @@ void StagingBuffer::update()
 }
 void StagingBuffer::setUpdateData(bool update)
 {
-    for (size_t i = 0; i < m_updateData.size(); i++)
+    for (size_t i = 0; i < std::max(m_updateData.size(), static_cast<size_t>(1)); i++)
         m_updateData[i] = update;
 }

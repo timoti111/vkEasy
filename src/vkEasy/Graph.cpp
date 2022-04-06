@@ -300,7 +300,7 @@ GLFWWindow& Graph::getGLFWWindow(uint32_t width, uint32_t height, const std::str
 
 uint32_t Graph::getImageIndex()
 {
-    return m_imageIndex;
+    return m_window ? m_imageIndex : 0;
 }
 
 uint32_t Graph::getFrames()
