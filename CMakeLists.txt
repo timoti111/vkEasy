@@ -6,8 +6,9 @@ set(ENV{CMAKE_BUILD_PARALLEL_LEVEL})
 
 set(CMAKE_CXX_STANDARD 20)
 
-option (BUILD_WITH_LOCAL_VULKAN_HPP "Build with local Vulkan headers" ON)
-option (BUILD_ONLY_DYNAMIC "Build only dynamic. Required in case the Vulkan SDK is not available" OFF)
+option (VK_EASY_BUILD_EXAMPLES "Build the GLFW example programs" ON)
+option (VK_EASY_BUILD_WITH_LOCAL_VULKAN_HPP "Build with local Vulkan headers" ON)
+option (VK_EASY_BUILD_ONLY_DYNAMIC "Build only dynamic. Required in case the Vulkan SDK is not available" OFF)
 
 if(NOT (BUILD_ONLY_DYNAMIC AND BUILD_WITH_LOCAL_VULKAN_HPP))
   find_package(Vulkan REQUIRED)
@@ -121,9 +122,9 @@ endif(MSVC)
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_INCLUDE_CURRENT_DIR_IN_INTERFACE ON)
-set(SHADERC_SKIP_INSTALL ON)
-set(SHADERC_SKIP_TESTS ON)
-set(SHADERC_SKIP_EXAMPLES ON)
+
 add_subdirectory(extras)
-add_subdirectory(examples)
+if (VK_EASY_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif ()
 target_link_libraries(${PROJECT_NAME} glfw)
