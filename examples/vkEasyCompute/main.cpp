@@ -7,10 +7,7 @@
 #include <vkEasy/resources/StagingBuffer.h>
 #include <vkEasy/resources/StorageBuffer.h>
 
-#define BUFFER_ELEMENTS 32
-struct SpecializationData {
-    uint32_t BUFFER_ELEMENT_COUNT = BUFFER_ELEMENTS;
-};
+const uint32_t BUFFER_ELEMENTS = 32;
 
 int main()
 {
@@ -38,12 +35,9 @@ int main()
     auto gpuBufferDescriptor = compute.createDescriptor({ &gpuBuffer }, 0, 0);
     compute.setDispatchSize(BUFFER_ELEMENTS, 1, 1);
 
-    SpecializationData specializationData;
     auto& stage = compute.getComputeShaderStage();
     stage.setShaderFile("headless.comp");
-    stage.defineConstant(
-        0, offsetof(SpecializationData, BUFFER_ELEMENT_COUNT), sizeof(SpecializationData::BUFFER_ELEMENT_COUNT));
-    stage.setConstantData(&specializationData, sizeof(SpecializationData), true);
+    stage.setConstantData(BUFFER_ELEMENTS);
     stage.usesDescriptor(gpuBufferDescriptor);
 
     std::vector<uint32_t> computeOutput;

@@ -32,7 +32,7 @@ void Node::addExecutionBarrier(vk::PipelineStageFlagBits src, vk::PipelineStageF
     std ::cout << "Adding execution barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst)
                << " }" << std::endl;
 #endif
-    auto buffers = getDevice()->getUniversalCommandBuffers(1);
+    auto buffers = getCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, {}, {});
@@ -52,7 +52,7 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
         .setDstAccessMask(dstMask)
         .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
         .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED);
-    auto buffers = getDevice()->getUniversalCommandBuffers(1);
+    auto buffers = getCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, bufferBarrier, {});
@@ -73,7 +73,7 @@ void Node::addEvent(std::function<void()> event, vk::PipelineStageFlagBits after
     std::cout << "Adding event after { " << vk::to_string(afterStage) << " }" << std::endl;
 #endif
     auto vkEvent = getGraph()->createEvent(event);
-    auto buffers = getDevice()->getUniversalCommandBuffers(1);
+    auto buffers = getCommandBuffers(1);
     if (buffers.empty())
         return;
     buffers[0]->setEvent(**vkEvent, afterStage);
@@ -125,4 +125,9 @@ void Node::needsExtensions(const std::initializer_list<std::string>& extensions)
 void Node::setCullImmune(bool cullImmune)
 {
     m_cullImmune = cullImmune;
+}
+
+std::vector<vk::raii::CommandBuffer*> Node::getCommandBuffers(size_t count)
+{
+    return getGraph()->getCommandBuffers(count);
 }

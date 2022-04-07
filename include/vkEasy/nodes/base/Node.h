@@ -33,6 +33,7 @@ protected:
     void addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
         vk::AccessFlagBits srcMask, vk::AccessFlagBits dstMask);
     virtual void update() = 0;
+    std::vector<vk::raii::CommandBuffer*> getCommandBuffers(size_t count);
 
     vk::QueueFlags m_neededQueueTypes;
     vk::PipelineStageFlagBits m_pipelineStage = vk::PipelineStageFlagBits::eNoneKHR;

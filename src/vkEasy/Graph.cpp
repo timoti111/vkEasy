@@ -145,50 +145,39 @@ void Graph::execute()
 {
     if (!getDevice()->m_initialized)
         getDevice()->initialize();
+    if (!m_compiled)
+        error(Error::RecordingGraph);
 
     if (m_window) {
         m_window->pollEvents();
         m_window->m_swapChain->update();
     }
-
-    if (!m_compiled)
-        error(Error::RecordingGraph);
-
-    if (!m_inFlightFence) {
-        vk::FenceCreateInfo fenceCreateInfo;
-        fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
-        m_inFlightFence = std::make_unique<vk::raii::Fence>(*getDevice()->getLogicalDevice(), fenceCreateInfo);
-    }
+    createSynchronizationObjects();
 
 #ifndef NDEBUG
     std::cout << "Executing graph:" << std::endl;
 #endif
+
     vk::SubmitInfo submitInfo;
     vk::PipelineStageFlags dstStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 
-    getDevice()->getLogicalDevice()->waitForFences(**m_inFlightFence, true, UINT64_MAX);
+    getDevice()->getLogicalDevice()->waitForFences(**m_inFlightFence[m_currentFramesInFlight], true, UINT64_MAX);
 
     if (m_window) {
-        vk::SemaphoreCreateInfo semaphoreCreateInfo;
-        if (!m_imageAvailableSemaphore)
-            m_imageAvailableSemaphore
-                = std::make_unique<vk::raii::Semaphore>(*getDevice()->getLogicalDevice(), semaphoreCreateInfo);
-        if (!m_renderFinishedSemaphore)
-            m_renderFinishedSemaphore
-                = std::make_unique<vk::raii::Semaphore>(*getDevice()->getLogicalDevice(), semaphoreCreateInfo);
-        auto result = m_window->m_swapChain->m_swapChain->acquireNextImage(UINT64_MAX, **m_imageAvailableSemaphore);
+        auto result = m_window->m_swapChain->m_swapChain->acquireNextImage(
+            UINT64_MAX, **m_imageAvailableSemaphore[m_currentFramesInFlight]);
         m_imageIndex = result.second;
         if (result.first == vk::Result::eErrorOutOfDateKHR) {
             m_window->recreateSwapchain();
             return;
         }
-        submitInfo.setWaitSemaphores(**m_imageAvailableSemaphore)
+        submitInfo.setWaitSemaphores(**m_imageAvailableSemaphore[m_currentFramesInFlight])
             .setWaitDstStageMask(dstStageMask)
-            .setSignalSemaphores(**m_renderFinishedSemaphore);
+            .setSignalSemaphores(**m_renderFinishedSemaphore[m_currentFramesInFlight]);
     }
 
-    getDevice()->getLogicalDevice()->resetFences(**m_inFlightFence);
-    getDevice()->resetCommandBuffers();
+    getDevice()->getLogicalDevice()->resetFences(**m_inFlightFence[m_currentFramesInFlight]);
+    m_commandBuffers[m_currentFramesInFlight].resetCommandBuffers();
 
     m_events.clear();
     for (auto& step : m_timeline) {
@@ -199,7 +188,9 @@ void Graph::execute()
         //     resource->destroy();
     }
 
-    getDevice()->sendCommandBuffers(&submitInfo, m_inFlightFence.get());
+    auto buffers = m_commandBuffers[m_currentFramesInFlight].endCommandBuffers();
+    submitInfo.setCommandBuffers(buffers);
+    getDevice()->sendCommandBuffers(&submitInfo, m_inFlightFence[m_currentFramesInFlight].get());
 
     for (auto& event : m_events) {
         while (event.vkEvent->getStatus() != vk::Result::eEventSet)
@@ -211,13 +202,13 @@ void Graph::execute()
         vk::PresentInfoKHR presentInfo;
         presentInfo.setImageIndices(m_imageIndex)
             .setSwapchains(**m_window->m_swapChain->m_swapChain)
-            .setWaitSemaphores(**m_renderFinishedSemaphore);
+            .setWaitSemaphores(**m_renderFinishedSemaphore[m_currentFramesInFlight]);
         bool needsRecreation = false;
         try {
             auto result = getDevice()->present(&presentInfo);
             if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR)
                 needsRecreation = true;
-        } catch (vk::OutOfDateKHRError) {
+        } catch (vk::OutOfDateKHRError&) {
             needsRecreation = true;
         }
         if (needsRecreation) {
@@ -229,6 +220,8 @@ void Graph::execute()
 #ifndef NDEBUG
     std::cout << std::endl;
 #endif
+
+    m_currentFramesInFlight = (m_currentFramesInFlight + 1) % m_framesInFlight;
 }
 
 vk::raii::Event* Graph::createEvent(std::function<void()> action)
@@ -306,6 +299,76 @@ uint32_t Graph::getImageIndex()
 uint32_t Graph::getFrames()
 {
     if (m_window)
-        return m_window->m_swapChain->getNumberOfFramesInFlight();
+        return m_window->m_swapChain->getNumberOfSwapchainFrames();
     return 1;
+}
+
+void Graph::createSynchronizationObjects()
+{
+    vk::FenceCreateInfo fenceCreateInfo;
+    fenceCreateInfo.setFlags(vk::FenceCreateFlagBits::eSignaled);
+    vk::SemaphoreCreateInfo semaphoreCreateInfo;
+    if (m_inFlightFence.empty()) {
+        for (size_t i = 0; i < m_framesInFlight; i++)
+            m_inFlightFence[i] = std::make_unique<vk::raii::Fence>(*getDevice()->getLogicalDevice(), fenceCreateInfo);
+    }
+    if (m_window && m_imageAvailableSemaphore.empty() && m_renderFinishedSemaphore.empty()) {
+        for (size_t i = 0; i < m_framesInFlight; i++) {
+            m_imageAvailableSemaphore[i]
+                = std::make_unique<vk::raii::Semaphore>(*getDevice()->getLogicalDevice(), semaphoreCreateInfo);
+            m_renderFinishedSemaphore[i]
+                = std::make_unique<vk::raii::Semaphore>(*getDevice()->getLogicalDevice(), semaphoreCreateInfo);
+        }
+    }
+    if (m_commandBuffers.empty()) {
+        for (size_t i = 0; i < m_framesInFlight; i++)
+            m_commandBuffers[i].commandPool = getDevice()->getCommandPool();
+    }
+}
+std::vector<vk::raii::CommandBuffer*> Graph::CommandBuffers::getCommandBuffers(size_t count, vk::raii::Device* device)
+{
+    if (count + usedCommandBuffers > allocatedCommandBuffers.size()) {
+        vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
+        cmdBufAllocateInfo.setCommandPool(**commandPool)
+            .setLevel(vk::CommandBufferLevel::ePrimary)
+            .setCommandBufferCount(count);
+        commandBuffers.push_back(std::make_unique<vk::raii::CommandBuffers>(*device, cmdBufAllocateInfo));
+        for (size_t i = 0; i < commandBuffers.back()->size(); i++)
+            allocatedCommandBuffers.push_back(&commandBuffers.back()->at(i));
+    }
+    std::vector<vk::raii::CommandBuffer*> ret;
+    ret.insert(ret.end(), allocatedCommandBuffers.begin() + usedCommandBuffers, allocatedCommandBuffers.end());
+    vk::CommandBufferBeginInfo beginInfo;
+    beginInfo.setFlags(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+    for (auto& commandBuffer : ret)
+        commandBuffer->begin(beginInfo);
+    usedCommandBuffers += count;
+
+    return ret;
+}
+
+std::vector<vk::CommandBuffer> Graph::CommandBuffers::endCommandBuffers()
+{
+    std::vector<vk::CommandBuffer> cmdBuffersToSubmit;
+    for (size_t i = 0; i < usedCommandBuffers; i++) {
+        allocatedCommandBuffers[i]->end();
+        cmdBuffersToSubmit.push_back(**allocatedCommandBuffers[i]);
+    }
+    usedCommandBuffers = 0;
+    return cmdBuffersToSubmit;
+}
+
+void Graph::CommandBuffers::resetCommandBuffers()
+{
+    commandPool->reset();
+}
+
+std::vector<vk::raii::CommandBuffer*> Graph::getCommandBuffers(size_t count)
+{
+    return m_commandBuffers[m_currentFramesInFlight].getCommandBuffers(count, getDevice()->getLogicalDevice());
+}
+
+void Graph::setNumberOfFramesInFlight(size_t count)
+{
+    m_framesInFlight = count;
 }

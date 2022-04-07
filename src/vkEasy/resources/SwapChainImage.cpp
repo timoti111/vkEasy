@@ -72,7 +72,7 @@ bool SwapChainImage::exists()
     return m_images.size();
 }
 
-uint32_t SwapChainImage::getNumberOfFramesInFlight()
+uint32_t SwapChainImage::getNumberOfSwapchainFrames()
 {
     return m_images.size();
 }

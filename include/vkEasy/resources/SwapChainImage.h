@@ -21,7 +21,7 @@ protected:
     virtual void update();
     virtual bool exists();
     void recreate();
-    uint32_t getNumberOfFramesInFlight();
+    uint32_t getNumberOfSwapchainFrames();
 
 private:
     WSI* m_window;

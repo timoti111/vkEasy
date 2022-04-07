@@ -31,33 +31,18 @@ ShaderStage& ShaderStage::defineConstant(uint32_t id, uint32_t offset, size_t si
     return *this;
 }
 
-ShaderStage& ShaderStage::setConstantData(void* data, size_t size, bool copy)
-{
-    m_parent->needsRebuild();
-    void* dataPtr = data;
-    if (copy) {
-        m_data = std::vector<char>(size);
-        std::memcpy(m_data.data(), data, size);
-        dataPtr = m_data.data();
-    }
-    m_specializationInfo.setDataSize(size).setPData(dataPtr);
-    return *this;
-}
-
-ShaderStage& ShaderStage::clearConstants()
-{
-    m_parent->needsRebuild();
-    m_specializationMapEntries.clear();
-    setConstantData(nullptr, 0);
-    m_entriesChanged = true;
-    return *this;
-}
-
 ShaderStage& ShaderStage::setEntryPoint(const std::string& entryPoint)
 {
     m_shaderEntryPoint = entryPoint;
     m_parent->needsRebuild();
     m_shaderStageCreateInfo.setPName(m_shaderEntryPoint.c_str());
+    return *this;
+}
+
+ShaderStage& ShaderStage::setConstantData()
+{
+    m_specializationInfo.setDataSize(m_data.size()).setPData(m_data.data());
+    m_numberOfConstantData = 0;
     return *this;
 }
 

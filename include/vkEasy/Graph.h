@@ -14,6 +14,8 @@ class Device;
 class Graph : public Errorable, public Object {
     friend class Device;
     friend class Node;
+    friend class Resource;
+    friend class Framebuffer;
 
 public:
     Graph(Graph const&) = delete;
@@ -57,14 +59,26 @@ public:
     Framebuffer& createFramebuffer();
 
     GLFWWindow& getGLFWWindow(uint32_t width, uint32_t height, const std::string& title);
-
-    uint32_t getImageIndex();
-    uint32_t getFrames();
+    void setNumberOfFramesInFlight(size_t count);
 
 private:
     Graph(Device* device);
     vk::raii::Event* createEvent(std::function<void()> action);
+    void createSynchronizationObjects();
+    uint32_t getImageIndex();
+    uint32_t getFrames();
     bool m_compiled = false;
+    struct CommandBuffers {
+        std::unique_ptr<vk::raii::CommandPool> commandPool;
+        std::vector<std::unique_ptr<vk::raii::CommandBuffers>> commandBuffers;
+        std::vector<vk::raii::CommandBuffer*> allocatedCommandBuffers;
+        size_t usedCommandBuffers = 0;
+
+        std::vector<vk::raii::CommandBuffer*> getCommandBuffers(size_t count, vk::raii::Device* device);
+        std::vector<vk::CommandBuffer> endCommandBuffers();
+        void resetCommandBuffers();
+    };
+    std::vector<vk::raii::CommandBuffer*> getCommandBuffers(size_t count);
 
     struct RenderStep {
         Node* renderTask;
@@ -86,9 +100,12 @@ private:
     };
     std::vector<Event> m_events;
 
-    std::unique_ptr<vk::raii::Semaphore> m_imageAvailableSemaphore;
-    std::unique_ptr<vk::raii::Semaphore> m_renderFinishedSemaphore;
-    std::unique_ptr<vk::raii::Fence> m_inFlightFence;
+    std::map<size_t, std::unique_ptr<vk::raii::Semaphore>> m_imageAvailableSemaphore;
+    std::map<size_t, std::unique_ptr<vk::raii::Semaphore>> m_renderFinishedSemaphore;
+    std::map<size_t, std::unique_ptr<vk::raii::Fence>> m_inFlightFence;
+    std::map<size_t, CommandBuffers> m_commandBuffers;
+    size_t m_framesInFlight = 1;
+    size_t m_currentFramesInFlight = 0;
     uint32_t m_imageIndex;
 };
 } // namespace VK_EASY_NAMESPACE

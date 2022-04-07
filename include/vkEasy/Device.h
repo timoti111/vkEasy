@@ -20,11 +20,7 @@ public:
     vk::raii::PhysicalDevice* getPhysicalDevice();
     MemoryAllocator* getAllocator();
 
-    void sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fence = nullptr);
-    vk::Result present(vk::PresentInfoKHR* presentInfo);
-    void resetCommandBuffers();
     void wait();
-    std::vector<vk::raii::CommandBuffer*> getUniversalCommandBuffers(size_t count);
     void initialize();
 
 private:
@@ -38,22 +34,12 @@ private:
     vk::PhysicalDeviceFeatures m_requiredFeatures;
 
     std::unique_ptr<vk::raii::Device> m_device;
-
-    struct QueueData {
-        std::unique_ptr<vk::raii::Queue> queue;
-        std::unique_ptr<vk::raii::CommandPool> commandPool;
-        std::vector<std::unique_ptr<vk::raii::CommandBuffers>> commandBuffers;
-        std::vector<vk::raii::CommandBuffer*> allocatedCommandBuffers;
-        size_t usedCommandBuffers = 0;
-
-        std::vector<vk::raii::CommandBuffer*> getCommandBuffers(size_t count, vk::raii::Device* device);
-        void sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fence = nullptr);
-        vk::Result present(vk::PresentInfoKHR* presentInfo);
-        void resetCommandBuffers();
-        void waitIdle();
-    };
-    std::vector<std::unique_ptr<QueueData>> m_queues;
-    size_t m_universalQueueIndex;
+    std::unique_ptr<vk::raii::Queue> m_queue;
+    std::mutex m_queueMutex;
+    std::unique_ptr<vk::raii::CommandPool> getCommandPool();
+    vk::Result present(vk::PresentInfoKHR* presentInfo);
+    void sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fence = nullptr);
+    size_t m_queueIndex;
     vk::QueueFlags m_neededQueues;
 
     std::unique_ptr<MemoryAllocator> m_allocator;

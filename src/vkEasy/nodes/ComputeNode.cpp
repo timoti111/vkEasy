@@ -15,7 +15,7 @@ void ComputeNode::update()
 {
     m_basePipelineUpdateFunction();
 
-    auto computeBuffers = getDevice()->getUniversalCommandBuffers(1);
+    auto computeBuffers = getCommandBuffers(1);
     if (computeBuffers.empty())
         return;
 

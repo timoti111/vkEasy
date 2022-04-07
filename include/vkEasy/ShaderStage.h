@@ -2,6 +2,7 @@
 #include <map>
 
 #include <shaderc/shaderc.hpp>
+#include <tuple>
 #include <vkEasy/Error.h>
 #include <vkEasy/global.h>
 
@@ -23,9 +24,17 @@ public:
     ShaderStage& setShaderFile(const std::string& file, bool watchForChanges = true);
     ShaderStage& setShaderData(const std::vector<uint32_t>& data);
     ShaderStage& setEntryPoint(const std::string& entryPoint);
-    ShaderStage& defineConstant(uint32_t id, uint32_t offset, size_t size);
-    ShaderStage& setConstantData(void* data, size_t size, bool copy = false);
-    ShaderStage& clearConstants();
+    ShaderStage& setConstantData();
+    template <typename First, typename... Rest> ShaderStage& setConstantData(const First& first, const Rest&... rest)
+    {
+        if (m_numberOfConstantData == 0)
+            m_data.clear();
+        auto ptr = reinterpret_cast<const char*>(&first);
+        defineConstant(m_numberOfConstantData, m_data.size(), sizeof(First));
+        m_data.insert(m_data.end(), ptr, ptr + sizeof(First));
+        m_numberOfConstantData++;
+        return setConstantData(rest...);
+    };
 
 private:
     explicit ShaderStage(const vk::ShaderStageFlagBits& stage, PipelineNode* parent);
@@ -36,6 +45,7 @@ private:
     void update(Device* device);
     vk::PipelineShaderStageCreateInfo* getPipelineShaderStageCreateInfo();
     static shaderc_shader_kind toShaderKind(vk::ShaderStageFlagBits flag);
+    ShaderStage& defineConstant(uint32_t id, uint32_t offset, size_t size);
 
     std::unique_ptr<vk::raii::ShaderModule> m_shaderModule;
     vk::ShaderModuleCreateInfo m_moduleCreateInfo;
@@ -51,5 +61,6 @@ private:
     bool m_watchChanges;
     bool m_shaderModuleChanged = false;
     bool m_entriesChanged = false;
+    size_t m_numberOfConstantData = 0;
 };
 } // namespace VK_EASY_NAMESPACE

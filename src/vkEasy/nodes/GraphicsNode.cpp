@@ -35,7 +35,7 @@ void GraphicsNode::update()
 {
     m_basePipelineUpdateFunction();
 
-    auto graphicsBuffers = getDevice()->getUniversalCommandBuffers(1);
+    auto graphicsBuffers = getCommandBuffers(1);
     if (graphicsBuffers.empty())
         return;
 

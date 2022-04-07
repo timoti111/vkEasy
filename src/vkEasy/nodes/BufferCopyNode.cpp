@@ -14,7 +14,7 @@ BufferCopyNode::BufferCopyNode()
 
 void BufferCopyNode::update()
 {
-    auto transferBuffers = getDevice()->getUniversalCommandBuffers(1);
+    auto transferBuffers = getCommandBuffers(1);
     if (transferBuffers.empty())
         return;
 
