@@ -77,7 +77,7 @@ void Framebuffer::build()
 
     m_attachmentViews.clear();
     m_frameBuffers.clear();
-    for (size_t i = 0; i < getGraph()->getFrames(); i++) {
+    for (size_t i = 0; i < getGraph()->getNumberOfImages(); i++) {
         for (auto& attachment : m_attachments)
             m_attachmentViews[i].push_back(**attachment->getVkImageView(i));
 

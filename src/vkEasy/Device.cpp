@@ -12,11 +12,6 @@ Device::Device(vk::raii::PhysicalDevice* device)
     m_physicalDevice = device;
 }
 
-Device::~Device()
-{
-    wait();
-}
-
 Graph& Device::createGraph()
 {
     m_graphs.push_back(std::unique_ptr<Graph>(new Graph(this)));
@@ -162,7 +157,7 @@ void Device::initialize()
 void Device::initializeVMA()
 {
     VmaAllocatorCreateInfo allocatorInfo = {};
-    allocatorInfo.vulkanApiVersion = Context::get().m_applicationInfo.apiVersion;
+    allocatorInfo.vulkanApiVersion = m_physicalDevice->getProperties().apiVersion;
     allocatorInfo.physicalDevice = **m_physicalDevice;
     allocatorInfo.device = **getLogicalDevice();
     allocatorInfo.instance = **Context::get().m_instance;

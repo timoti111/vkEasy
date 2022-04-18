@@ -40,6 +40,9 @@ protected:
     virtual void create();
     void createView(size_t index);
 
+    virtual void transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) {};
+    virtual void transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) {};
+
     vk::ImageUsageFlags m_imageUsageFlags;
     vk::ImageCreateInfo m_imageCreateInfo;
 

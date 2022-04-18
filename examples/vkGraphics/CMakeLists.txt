@@ -28,7 +28,6 @@ else()
     message(FATAL_ERROR, "Vulkan-Hpp: unhandled platform for samples!")
 endif()
 
-
 source_group(headers FILES ${vkGraphics_HEADERS})
 source_group(sources FILES ${vkGraphics_SOURCES})
 

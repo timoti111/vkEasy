@@ -44,7 +44,14 @@ void GraphicsNode::update()
     if (!m_descriptorSetsToBind.empty())
         graphicsBuffers[0]->bindDescriptorSets(
             vk::PipelineBindPoint::eGraphics, **m_pipelineLayout, 0, m_descriptorSetsToBind, {});
-    graphicsBuffers[0]->draw(3, 1, 0, 0);
+    if (m_vertexBuffer)
+        graphicsBuffers[0]->bindVertexBuffers(0, vk::Buffer(m_vertexBuffer->getVkBuffer()), { 0 });
+    if (m_indexBuffer) {
+        graphicsBuffers[0]->bindIndexBuffer(vk::Buffer(m_indexBuffer->getVkBuffer()), 0, m_indexBuffer->m_indexType);
+        graphicsBuffers[0]->drawIndexed(m_indexBuffer->m_numberOfIndices, m_numberOfInstances, 0, 0, 0);
+    } else
+        graphicsBuffers[0]->draw(
+            m_vertexBuffer ? m_vertexBuffer->m_numberOfVertices : m_numberOfVertices, m_numberOfInstances, 0, 0);
     m_framebuffer->end(graphicsBuffers[0]);
 }
 
@@ -54,6 +61,16 @@ void GraphicsNode::buildPipeline()
     for (auto& [key, element] : m_stages)
         stageInfos.push_back(*element->getPipelineShaderStageCreateInfo());
     m_framebuffer->build();
+
+    if (m_vertexBuffer) {
+        m_bindingDescription.setBinding(0);
+        m_bindingDescription.setInputRate(
+            m_numberOfInstances == 1 ? vk::VertexInputRate::eVertex : vk::VertexInputRate::eInstance);
+        m_bindingDescription.setStride(m_vertexBuffer->getStride());
+        m_vertexInputState.setVertexAttributeDescriptions(m_vertexBuffer->getAttributes());
+        m_vertexInputState.setVertexBindingDescriptions(m_bindingDescription);
+        m_inputAssemblyState.setTopology(m_vertexBuffer->m_primitiveTopology);
+    }
 
     vk::Viewport viewport;
     viewport.setWidth(m_framebuffer->m_framebufferCreateInfo.width)
@@ -120,4 +137,31 @@ void GraphicsNode::setDepthStencilAttachment(AttachmentImage* attachment)
     m_depthStencilAttachment.setAttachment(attachment->getIndex());
     m_subpassDescription.setPDepthStencilAttachment(&m_depthStencilAttachment);
     uses(attachment, Resource::Access::ReadWrite);
+}
+
+void GraphicsNode::setVertexBuffer(VertexBuffer* attachment)
+{
+    m_vertexBuffer = attachment;
+    uses(attachment, Resource::Access::ReadOnly);
+}
+
+void GraphicsNode::setIndexBuffer(IndexBuffer* attachment)
+{
+    m_indexBuffer = attachment;
+    uses(attachment, Resource::Access::ReadOnly);
+}
+
+void GraphicsNode::setNumberOfInstances(uint32_t instances)
+{
+    m_numberOfInstances = instances;
+}
+
+void GraphicsNode::setNumberOfVertices(uint32_t vertices)
+{
+    m_numberOfVertices = vertices;
+}
+
+void GraphicsNode::setTopology(vk::PrimitiveTopology topology)
+{
+    m_inputAssemblyState.setTopology(topology);
 }

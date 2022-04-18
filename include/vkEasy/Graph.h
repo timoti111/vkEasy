@@ -18,6 +18,7 @@ class Graph : public Errorable, public Object {
     friend class Framebuffer;
 
 public:
+    ~Graph();
     Graph(Graph const&) = delete;
     void operator=(Graph const&) = delete;
 
@@ -36,8 +37,6 @@ public:
     GraphicsNode& createGraphicsNode();
     ComputeNode& createComputeNode();
     BufferCopyNode& createBufferCopyNode();
-    MemoryReadNode& createMemoryReadNode();
-    MemoryWriteNode& createMemoryWriteNode();
 
     template <class T>
     requires(std::is_base_of_v<Resource, T> && !std::is_same_v<Resource, T>) T& createResource(
@@ -55,6 +54,10 @@ public:
         Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
     UniformBuffer& createUniformBuffer(
         Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
+    VertexBuffer& createVertexBuffer(
+        Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
+    IndexBuffer& createIndexBuffer(
+        Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
 
     Framebuffer& createFramebuffer();
 
@@ -63,10 +66,12 @@ public:
 
 private:
     Graph(Device* device);
-    vk::raii::Event* createEvent(std::function<void()> action);
+    void pushCommand(std::function<void()> command);
     void createSynchronizationObjects();
     uint32_t getImageIndex();
-    uint32_t getFrames();
+    uint32_t getNumberOfImages();
+    uint32_t getCurrentFrameInFlight();
+    uint32_t getNumberOfFramesInFlight();
     bool m_compiled = false;
     struct CommandBuffers {
         std::unique_ptr<vk::raii::CommandPool> commandPool;
@@ -85,27 +90,22 @@ private:
         std::vector<Resource*> createdResources;
         std::vector<Resource*> destroyedResources;
     };
-
-    std::unique_ptr<WSI> m_window;
-    std::vector<std::unique_ptr<Framebuffer>> m_framebuffers;
-    std::vector<std::unique_ptr<Node>> m_nodes;
-    std::vector<std::unique_ptr<Resource>> m_resources;
     std::vector<RenderStep> m_timeline;
 
-    std::vector<Node*> m_nodeOrderGraph;
-
-    struct Event {
-        std::unique_ptr<vk::raii::Event> vkEvent;
-        std::function<void()> action;
-    };
-    std::vector<Event> m_events;
-
+    std::map<size_t, CommandBuffers> m_commandBuffers;
     std::map<size_t, std::unique_ptr<vk::raii::Semaphore>> m_imageAvailableSemaphore;
     std::map<size_t, std::unique_ptr<vk::raii::Semaphore>> m_renderFinishedSemaphore;
     std::map<size_t, std::unique_ptr<vk::raii::Fence>> m_inFlightFence;
-    std::map<size_t, CommandBuffers> m_commandBuffers;
+    std::unique_ptr<WSI> m_window;
+    std::vector<std::unique_ptr<Resource>> m_resources;
+    std::vector<std::unique_ptr<Framebuffer>> m_framebuffers;
+    std::vector<std::unique_ptr<Node>> m_nodes;
+
+    std::vector<Node*> m_nodeOrderGraph;
+    std::vector<std::function<void()>> m_commands;
+
     size_t m_framesInFlight = 1;
-    size_t m_currentFramesInFlight = 0;
+    size_t m_currentFrameInFlight = 0;
     uint32_t m_imageIndex;
 };
 } // namespace VK_EASY_NAMESPACE

@@ -1,11 +1,5 @@
 #include <iostream>
-#include <vkEasy/Context.h>
-#include <vkEasy/Graph.h>
-#include <vkEasy/nodes/ComputeNode.h>
-#include <vkEasy/nodes/MemoryReadNode.h>
-#include <vkEasy/nodes/MemoryWriteNode.h>
-#include <vkEasy/resources/StagingBuffer.h>
-#include <vkEasy/resources/StorageBuffer.h>
+#include <vkEasy/vkEasy.h>
 
 const uint32_t BUFFER_ELEMENTS = 32;
 
@@ -25,32 +19,20 @@ int main()
     std::vector<uint8_t> computeInputBytes(dataPtr8, dataPtr8 + bufferSize);
 
     auto& gpuBuffer = graph.createStorageBuffer();
-    gpuBuffer.setSize(bufferSize);
-
-    auto& memoryWrite = graph.createMemoryWriteNode();
-    memoryWrite.setDstResource(gpuBuffer);
-    memoryWrite.setData(computeInputBytes);
+    gpuBuffer.setData(computeInputBytes);
+    gpuBuffer.setDataToRead();
 
     auto& compute = graph.createComputeNode();
     auto gpuBufferDescriptor = compute.createDescriptor({ &gpuBuffer }, 0, 0);
     compute.setDispatchSize(BUFFER_ELEMENTS, 1, 1);
+    compute.setCullImmune(true);
 
     auto& stage = compute.getComputeShaderStage();
     stage.setShaderFile("headless.comp");
     stage.setConstantData(BUFFER_ELEMENTS);
     stage.usesDescriptor(gpuBufferDescriptor);
 
-    std::vector<uint32_t> computeOutput;
-    auto& memoryRead = graph.createMemoryReadNode();
-    memoryRead.setSrcResource(gpuBuffer);
-    memoryRead.onDataReady([&computeOutput](auto& data) {
-        auto dataPtr32 = reinterpret_cast<const uint32_t*>(data.data());
-        computeOutput.insert(computeOutput.end(), dataPtr32, dataPtr32 + BUFFER_ELEMENTS);
-    });
-
-    graph.enqueueNode(memoryWrite);
     graph.enqueueNode(compute);
-    graph.enqueueNode(memoryRead);
 
     // Compile phase
     graph.compile();
@@ -63,6 +45,7 @@ int main()
         std::cout << v << '\t';
     std::cout << std::endl;
 
+    auto computeOutput = gpuBuffer.getData<uint32_t>();
     std::cout << "Compute output:" << std::endl;
     for (auto& v : computeOutput)
         std::cout << v << '\t';

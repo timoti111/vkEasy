@@ -22,3 +22,6 @@
 [submodule "extras/glfw"]
 	path = extras/glfw
 	url = git@github.com:glfw/glfw.git
+[submodule "extras/glm"]
+	path = extras/glm
+	url = git@github.com:g-truc/glm.git

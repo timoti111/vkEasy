@@ -11,7 +11,6 @@ class Device : public Errorable {
     friend class Graph;
 
 public:
-    ~Device();
     Device(Device const&) = delete;
     void operator=(Device const&) = delete;
 

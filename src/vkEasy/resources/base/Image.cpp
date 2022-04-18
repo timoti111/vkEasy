@@ -11,7 +11,6 @@ Image::Image()
 
 void Image::addImageUsageFlag(vk::ImageUsageFlagBits flag)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setUsage(m_imageCreateInfo.usage | flag);
 }
 
@@ -29,7 +28,6 @@ void Image::create()
 
 void Image::setDimensionality(const vk::ImageType& dimensionality)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setImageType(dimensionality);
 }
 
@@ -40,7 +38,6 @@ vk::ImageType Image::getDimensionality()
 
 void Image::setDimensions(const vk::Extent3D& dimensions)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setExtent(dimensions);
 }
 
@@ -51,7 +48,6 @@ vk::Extent3D Image::getDimensions()
 
 void Image::setFormat(const vk::Format& format)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setFormat(format);
 }
 
@@ -62,7 +58,6 @@ vk::Format Image::getFormat()
 
 void Image::setMipLevels(uint32_t mipLevels)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setMipLevels(mipLevels);
 }
 
@@ -73,7 +68,6 @@ uint32_t Image::getMipLevels()
 
 void Image::setArrayLayers(uint32_t arrayLayers)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setArrayLayers(arrayLayers);
 }
 
@@ -84,7 +78,6 @@ uint32_t Image::getArrayLayers()
 
 void Image::setSamplesPerTexel(const vk::SampleCountFlagBits& samplesPerTexel)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setSamples(samplesPerTexel);
 }
 
@@ -95,7 +88,6 @@ vk::SampleCountFlagBits Image::getSamplesPerTexel()
 
 void Image::setImageTiling(const vk::ImageTiling& imageTiling)
 {
-    setRecreateResource(true);
     m_imageCreateInfo.setTiling(imageTiling);
 }
 

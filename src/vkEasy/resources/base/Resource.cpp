@@ -1,3 +1,4 @@
+#include <vkEasy/Device.h>
 #include <vkEasy/Graph.h>
 #include <vkEasy/resources/base/Resource.h>
 
@@ -42,15 +43,46 @@ bool Resource::exists()
 
 void Resource::update()
 {
-    if (!exists() || m_recreateResource[getActualFrameIndex()]) {
+    if (!exists()) {
         m_lastAccess[getActualFrameIndex()].reset();
         create();
     }
-    m_recreateResource[getActualFrameIndex()] = false;
+
+    if (!m_writeData.empty()) {
+        if (getMemory().isMappable()) {
+            char* mapped = reinterpret_cast<char*>(m_vmaResource[getActualFrameIndex()]->mapMemory());
+            memcpy(mapped + m_writeOffset, m_writeData.data(), m_writeData.size());
+            m_vmaResource[getActualFrameIndex()]->unmapMemory();
+        } else {
+            if (!m_writeStagingBuffer)
+                m_writeStagingBuffer = &getGraph()->createStagingBuffer();
+            m_writeStagingBuffer->setData(m_writeData);
+            m_writeStagingBuffer->update();
+            transferFromStagingBuffer(m_writeStagingBuffer, m_writeOffset);
+        }
+    }
+
+    if (m_readSize != 0) {
+        m_readSize = m_readSize == VK_WHOLE_SIZE ? getMemory().getSize() : m_readSize;
+        if (!getMemory().isMappable()) {
+            if (!m_readStagingBuffer)
+                m_readStagingBuffer = &getGraph()->createStagingBuffer();
+            m_readStagingBuffer->setDataToRead(m_readSize);
+            m_readStagingBuffer->setSize(m_readSize);
+            m_readStagingBuffer->update();
+            getGraph()->pushCommand([this] { transferToStagingBuffer(m_readStagingBuffer, m_readOffset); });
+        }
+    }
 }
 
 void Resource::destroy()
 {
+    if (m_writeStagingBuffer)
+        m_writeStagingBuffer->destroy();
+    if (m_readStagingBuffer)
+        m_readStagingBuffer->destroy();
+    if (m_isPersistent)
+        return;
     m_lastAccess[getActualFrameIndex()].reset();
     m_vmaResource[getActualFrameIndex()].reset();
 }
@@ -58,12 +90,6 @@ void Resource::destroy()
 void Resource::setPersistence(bool persistent)
 {
     m_isPersistent = persistent;
-}
-
-void Resource::setRecreateResource(bool recreate)
-{
-    for (size_t i = 0; i < m_recreateResource.size(); i++)
-        m_recreateResource[i] = recreate;
 }
 
 size_t Resource::getActualFrameIndex()
@@ -74,4 +100,37 @@ size_t Resource::getActualFrameIndex()
 std::optional<Resource::AccessInfo>& Resource::getLastAccess()
 {
     return m_lastAccess[getActualFrameIndex()];
+}
+
+bool Resource::isPersistent()
+{
+    return m_isPersistent;
+}
+
+void Resource::setWriteData(const uint8_t* data, size_t size, size_t offset)
+{
+    m_writeOffset = offset;
+    m_writeData.clear();
+    m_writeData.insert(m_writeData.end(), data, data + size);
+}
+
+void Resource::setDataToRead(size_t size, size_t offset)
+{
+    m_readSize = size;
+    m_readOffset = offset;
+}
+
+const std::vector<uint8_t>& Resource::getData()
+{
+    m_readData.clear();
+    getDevice()->wait();
+    if (getMemory().isMappable()) {
+        char* mapped = reinterpret_cast<char*>(m_vmaResource[getActualFrameIndex()]->mapMemory());
+        m_readData.insert(m_readData.end(), mapped + m_readOffset, mapped + m_readOffset + m_readSize);
+        m_vmaResource[getActualFrameIndex()]->unmapMemory();
+    } else {
+        if (m_readStagingBuffer)
+            m_readData = m_readStagingBuffer->getData();
+    }
+    return m_readData;
 }

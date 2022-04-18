@@ -58,27 +58,6 @@ void Node::addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags d
     buffers[0]->pipelineBarrier(src, dst, {}, {}, bufferBarrier, {});
 }
 
-void Node::addResourceEvent(std::function<void()> event, Resource* resource)
-{
-    auto& lastAccess = resource->getLastAccess();
-    auto stage = lastAccess ? lastAccess->node->m_pipelineStage : vk::PipelineStageFlagBits::eNone;
-    addEvent(event, stage);
-}
-
-void Node::addEvent(std::function<void()> event, vk::PipelineStageFlagBits afterStage)
-{
-    if (afterStage == vk::PipelineStageFlagBits::eNoneKHR)
-        afterStage = vk::PipelineStageFlagBits::eAllCommands;
-#ifndef NDEBUG
-    std::cout << "Adding event after { " << vk::to_string(afterStage) << " }" << std::endl;
-#endif
-    auto vkEvent = getGraph()->createEvent(event);
-    auto buffers = getCommandBuffers(1);
-    if (buffers.empty())
-        return;
-    buffers[0]->setEvent(**vkEvent, afterStage);
-}
-
 void Node::execute()
 {
     for (auto& read : m_reads) {
@@ -88,7 +67,7 @@ void Node::execute()
         if (!lastAccess)
             continue;
         if (lastAccess->access == Resource::Access::ReadWrite)
-            addExecutionBarrier(lastAccess->node->m_pipelineStage, m_pipelineStage);
+            addExecutionBarrier(lastAccess->pipelineStage, m_pipelineStage);
     }
 
     for (auto& write : m_writes) {
@@ -97,7 +76,7 @@ void Node::execute()
         auto& lastAccess = write->getLastAccess();
         if (!lastAccess)
             continue;
-        addExecutionBarrier(lastAccess->node->m_pipelineStage, m_pipelineStage);
+        addExecutionBarrier(lastAccess->pipelineStage, m_pipelineStage);
     }
 
 #ifndef NDEBUG
@@ -108,11 +87,11 @@ void Node::execute()
 
     if (m_pipelineStage != vk::PipelineStageFlagBits::eNoneKHR) {
         for (auto& create : m_creates)
-            create->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadWrite, this };
+            create->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadWrite, m_pipelineStage };
         for (auto& read : m_reads)
-            read->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadOnly, this };
+            read->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadOnly, m_pipelineStage };
         for (auto& write : m_writes)
-            write->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadWrite, this };
+            write->getLastAccess() = Resource::AccessInfo { Resource::Access::ReadWrite, m_pipelineStage };
     }
 }
 

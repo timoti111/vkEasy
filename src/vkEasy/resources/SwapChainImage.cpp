@@ -9,6 +9,7 @@ SwapChainImage::SwapChainImage()
 {
     m_swapChainCreateInfo.setImageFormat(vk::Format::eB8G8R8A8Srgb);
     m_swapChainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear);
+    m_swapChainCreateInfo.setPresentMode(vk::PresentModeKHR::eFifo);
     setPersistence(true);
 }
 
@@ -32,6 +33,10 @@ void SwapChainImage::update()
             found = true;
             break;
         }
+    }
+    for (const auto& availablePresentMode : presentModes) {
+        if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+            m_swapChainCreateInfo.setPresentMode(vk::PresentModeKHR::eMailbox);
     }
     if (!found)
         m_swapChainCreateInfo.setImageFormat(formats[0].format).setImageColorSpace(formats[0].colorSpace);

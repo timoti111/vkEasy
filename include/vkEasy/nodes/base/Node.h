@@ -9,8 +9,7 @@ namespace VK_EASY_NAMESPACE {
 class Node : public Errorable, public Object {
     friend class Graph;
     friend class Device;
-    friend class MemoryReadNode;
-    friend class MemoryWriteNode;
+    friend class Buffer;
 
 public:
     Node(Node const&) = delete;
@@ -26,9 +25,6 @@ protected:
     void execute();
     void uses(Resource* resource, Resource::Access access = Resource::Access::ReadWrite);
 
-    void addResourceEvent(std::function<void()> event, Resource* resource);
-    void addEvent(
-        std::function<void()> event, vk::PipelineStageFlagBits afterStage = vk::PipelineStageFlagBits::eAllCommands);
     void addExecutionBarrier(vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst);
     void addBufferBarrier(vk::PipelineStageFlags src, vk::PipelineStageFlags dst, vk::Buffer buffer,
         vk::AccessFlagBits srcMask, vk::AccessFlagBits dstMask);

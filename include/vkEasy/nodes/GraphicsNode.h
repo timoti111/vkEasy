@@ -1,6 +1,8 @@
 #pragma once
 #include <vkEasy/Framebuffer.h>
 #include <vkEasy/nodes/base/PipelineNode.h>
+#include <vkEasy/resources/IndexBuffer.h>
+#include <vkEasy/resources/VertexBuffer.h>
 
 namespace VK_EASY_NAMESPACE {
 class GraphicsNode : public PipelineNode {
@@ -17,6 +19,11 @@ public:
     Descriptor* setInputAttachment(AttachmentImage* attachment, size_t attachmentIndex, size_t binding, size_t set);
     void setColorAttachment(AttachmentImage* attachment, size_t layout);
     void setDepthStencilAttachment(AttachmentImage* attachment);
+    void setVertexBuffer(VertexBuffer* attachment);
+    void setIndexBuffer(IndexBuffer* attachment);
+    void setNumberOfInstances(uint32_t instances);
+    void setNumberOfVertices(uint32_t vertices);
+    void setTopology(vk::PrimitiveTopology topology);
 
 protected:
     GraphicsNode();
@@ -39,6 +46,11 @@ private:
     std::vector<vk::DynamicState> m_dynamicStates;
 
     Framebuffer* m_framebuffer = nullptr;
+    VertexBuffer* m_vertexBuffer = nullptr;
+    IndexBuffer* m_indexBuffer = nullptr;
+    uint32_t m_numberOfInstances = 1;
+    uint32_t m_numberOfVertices = 0;
+    vk::VertexInputBindingDescription m_bindingDescription;
 
     vk::AttachmentReference m_depthStencilAttachment;
     std::vector<vk::AttachmentReference> m_colorAttachments;
