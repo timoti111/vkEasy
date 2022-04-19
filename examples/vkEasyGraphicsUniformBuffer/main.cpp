@@ -39,7 +39,7 @@ int main()
     graphics.setCullImmune(true);
     graphics.setVertexBuffer(&vertexBuffer);
     graphics.setIndexBuffer(&indexBuffer);
-    auto descriptor = graphics.createDescriptor({ &uniformBuffer }, 0, 0);
+    graphics.createDescriptor({ &uniformBuffer }, 0, 0);
 
     graph.enqueueNode(graphics);
     graph.compile();
@@ -59,7 +59,7 @@ int main()
         ubo[0].view
             = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
         ubo[0].proj = glm::perspective(
-            glm::radians(45.0f), window.resolution().width / (float)window.resolution().width, 0.1f, 10.0f);
+            glm::radians(45.0f), window.resolution().width / (float)window.resolution().height, 0.1f, 10.0f);
         uniformBuffer.setData(ubo);
 
         graph.execute();
