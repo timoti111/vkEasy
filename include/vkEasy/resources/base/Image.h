@@ -40,12 +40,22 @@ protected:
     virtual void create();
     void createView(size_t index);
 
+    struct ImageAccessInfo {
+        std::optional<vk::ImageLayout> lastLayout;
+    };
+
+    void insertImageBarrier(
+        vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst, const vk::ImageMemoryBarrier& barrier);
     virtual void transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) {};
     virtual void transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) {};
+    virtual void solveSynchronization(vk::PipelineStageFlagBits stage, Access access);
+    virtual vk::ImageLayout getRequiredLayout(vk::PipelineStageFlagBits stage, Access access) = 0;
+    ImageAccessInfo& getLastImageAccessInfo();
 
     vk::ImageUsageFlags m_imageUsageFlags;
     vk::ImageCreateInfo m_imageCreateInfo;
-
+    vk::ImageAspectFlagBits m_imageAspect;
+    std::map<size_t, ImageAccessInfo> m_lastImageAccess;
     std::map<size_t, VkImage> m_images;
     std::map<size_t, std::unique_ptr<vk::raii::ImageView>> m_views;
 };

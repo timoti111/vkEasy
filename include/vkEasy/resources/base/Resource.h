@@ -1,6 +1,7 @@
 #pragma once
 #include <map>
 #include <optional>
+#include <set>
 #include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/Utils.h>
 #include <vkEasy/global.h>
@@ -47,20 +48,22 @@ protected:
     Resource() = default;
 
     struct AccessInfo {
-        Access access;
-        vk::PipelineStageFlagBits pipelineStage;
+        std::optional<vk::PipelineStageFlagBits> lastWrite;
+        std::optional<vk::PipelineStageFlagBits> lastRead;
+        std::optional<vk::AccessFlagBits> lastAccess;
     };
 
     virtual void create() = 0;
     virtual void transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) = 0;
     virtual void transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) = 0;
+    virtual void solveSynchronization(vk::PipelineStageFlagBits stage, Access access) = 0;
     MemoryAllocator::Resource& getMemory();
     void setMemoryUsage(VmaMemoryUsage flag);
     void destroy();
     virtual void update();
     virtual bool exists();
     size_t getActualFrameIndex();
-    std::optional<AccessInfo>& getLastAccess();
+    AccessInfo& getLastAccessInfo();
     virtual void setOptimization(OptimizationFlags optimization);
     void setWriteData(const uint8_t* data, size_t size, size_t offset);
 
@@ -75,8 +78,10 @@ protected:
     std::vector<Node*> m_writers;
     size_t m_referenceCount;
     bool m_isPersistent = false;
+    std::set<uint32_t> m_queueIndices;
+    std::vector<uint32_t> m_queueIndicesVector;
 
-    std::map<size_t, std::optional<AccessInfo>> m_lastAccess;
+    std::map<size_t, AccessInfo> m_lastAccess;
     std::map<size_t, std::unique_ptr<MemoryAllocator::Resource>> m_vmaResource;
 
 private:

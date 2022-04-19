@@ -10,11 +10,13 @@ SwapChainImage::SwapChainImage()
     m_swapChainCreateInfo.setImageFormat(vk::Format::eB8G8R8A8Srgb);
     m_swapChainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear);
     m_swapChainCreateInfo.setPresentMode(vk::PresentModeKHR::eFifo);
-    setPersistence(true);
 }
 
 void SwapChainImage::update()
 {
+    getLastAccessInfo() = AccessInfo();
+    getLastImageAccessInfo().lastLayout = vk::ImageLayout::eUndefined;
+
     if (m_swapChain && !m_recreate)
         return;
 
@@ -85,4 +87,9 @@ uint32_t SwapChainImage::getNumberOfSwapchainFrames()
 void SwapChainImage::recreate()
 {
     m_recreate = true;
+}
+
+void SwapChainImage::prepareForPresentation()
+{
+    solveSynchronization(vk::PipelineStageFlagBits::eNone, Access::ReadOnly);
 }

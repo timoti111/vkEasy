@@ -16,6 +16,7 @@ protected:
     AttachmentImage();
     void setIndex(size_t frameBufferIndex);
     size_t getIndex();
+    virtual vk::ImageLayout getRequiredLayout(vk::PipelineStageFlagBits stage, Access access);
 
 private:
     size_t m_index;

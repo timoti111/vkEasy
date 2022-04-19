@@ -15,6 +15,8 @@ class Graph : public Errorable, public Object {
     friend class Device;
     friend class Node;
     friend class Resource;
+    friend class Image;
+    friend class Buffer;
     friend class Framebuffer;
 
 public:

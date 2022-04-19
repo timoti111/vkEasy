@@ -9,6 +9,7 @@ namespace VK_EASY_NAMESPACE {
 class Device : public Errorable {
     friend class Context;
     friend class Graph;
+    friend class Node;
 
 public:
     Device(Device const&) = delete;
@@ -27,6 +28,7 @@ private:
     Device(vk::raii::PhysicalDevice* device);
     void findPhysicalDevice();
     void initializeVMA();
+    uint32_t getQueueIndex(vk::QueueFlagBits queueType);
 
     std::vector<char const*> m_requiredExtensionsVkCompatible;
     std::set<std::string> m_requiredExtensions;

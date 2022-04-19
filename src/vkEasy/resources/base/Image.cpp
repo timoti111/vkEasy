@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vkEasy/Device.h>
 #include <vkEasy/resources/base/Image.h>
 
@@ -6,7 +7,10 @@ using namespace VK_EASY_NAMESPACE;
 Image::Image()
     : Resource()
 {
-    m_imageCreateInfo.setSharingMode(vk::SharingMode::eExclusive);
+    setImageTiling(vk::ImageTiling::eOptimal);
+    addImageUsageFlag(vk::ImageUsageFlagBits::eTransferSrc);
+    addImageUsageFlag(vk::ImageUsageFlagBits::eTransferDst);
+    m_imageCreateInfo.setInitialLayout(vk::ImageLayout::eUndefined);
 }
 
 void Image::addImageUsageFlag(vk::ImageUsageFlagBits flag)
@@ -21,6 +25,12 @@ VkImage Image::getVkImage()
 
 void Image::create()
 {
+    getLastImageAccessInfo().lastLayout = vk::ImageLayout::eUndefined;
+
+    if (m_queueIndicesVector.size() > 1) {
+        m_imageCreateInfo.setQueueFamilyIndices(m_queueIndicesVector);
+        m_imageCreateInfo.setSharingMode(vk::SharingMode::eConcurrent);
+    }
     m_vmaResource[getActualFrameIndex()] = getDevice()->getAllocator()->createImage(m_imageCreateInfo, m_allocInfo);
     m_images[getActualFrameIndex()]
         = **dynamic_cast<MemoryAllocator::Image*>(m_vmaResource[getActualFrameIndex()].get());
@@ -121,4 +131,67 @@ void Image::createView(size_t index)
         .setSubresourceRange(subresourceRange)
         .setImage(m_images[index]);
     m_views[index] = std::make_unique<vk::raii::ImageView>(*getDevice()->getLogicalDevice(), viewCreateInfo);
+}
+
+void Image::solveSynchronization(vk::PipelineStageFlagBits stage, Access access)
+{
+    auto& lastAccess = getLastAccessInfo();
+    auto& lastImageAccess = getLastImageAccessInfo();
+    auto nextStage = stage;
+    auto nextAccess = access == Access::ReadOnly ? vk::AccessFlagBits::eMemoryRead : vk::AccessFlagBits::eMemoryWrite;
+    auto nextLayout = getRequiredLayout(nextStage, access);
+    bool layoutChanged = false;
+
+    vk::ImageMemoryBarrier imageBarrier;
+    vk::ImageSubresourceRange range;
+    range.setBaseMipLevel(0)
+        .setLevelCount(VK_REMAINING_MIP_LEVELS)
+        .setBaseArrayLayer(0)
+        .setLayerCount(VK_REMAINING_ARRAY_LAYERS)
+        .setAspectMask(m_imageAspect);
+    imageBarrier.setImage(getVkImage())
+        .setSubresourceRange(range)
+        .setSrcAccessMask(lastAccess.lastAccess ? lastAccess.lastAccess.value() : vk::AccessFlagBits::eNone)
+        .setDstAccessMask(nextAccess)
+        .setSrcQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+        .setDstQueueFamilyIndex(VK_QUEUE_FAMILY_IGNORED)
+        .setOldLayout(lastImageAccess.lastLayout ? lastImageAccess.lastLayout.value() : vk::ImageLayout::eUndefined)
+        .setNewLayout(nextLayout);
+
+    if (lastAccess.lastRead && access == Access::ReadWrite) {
+        insertImageBarrier(lastAccess.lastRead.value(), nextStage, imageBarrier);
+        layoutChanged = true;
+    }
+    if (lastAccess.lastWrite && access == Access::ReadWrite) {
+        insertImageBarrier(lastAccess.lastWrite.value(), nextStage, imageBarrier);
+        layoutChanged = true;
+    }
+    if (imageBarrier.oldLayout != imageBarrier.newLayout && !layoutChanged)
+        insertImageBarrier(
+            vk::PipelineStageFlagBits::eAllCommands, vk::PipelineStageFlagBits::eAllCommands, imageBarrier);
+
+    if (access == Access::ReadOnly)
+        lastAccess.lastRead = nextStage;
+    if (access == Access::ReadWrite)
+        lastAccess.lastWrite = nextStage;
+    lastAccess.lastAccess = nextAccess;
+    lastImageAccess.lastLayout = nextLayout;
+}
+
+Image::ImageAccessInfo& Image::getLastImageAccessInfo()
+{
+    return m_lastImageAccess[getActualFrameIndex()];
+}
+
+void Image::insertImageBarrier(
+    vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst, const vk::ImageMemoryBarrier& barrier)
+{
+    auto buffers = getGraph()->getCommandBuffers(1);
+    if (buffers.empty())
+        return;
+#ifndef NDEBUG
+    std ::cout << "Adding image barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst) << " }"
+               << std::endl;
+#endif
+    buffers[0]->pipelineBarrier(src, dst, {}, {}, {}, barrier);
 }

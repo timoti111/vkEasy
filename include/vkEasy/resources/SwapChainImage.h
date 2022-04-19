@@ -24,6 +24,7 @@ protected:
     uint32_t getNumberOfSwapchainFrames();
 
 private:
+    void prepareForPresentation();
     WSI* m_window;
     bool m_recreate = false;
     std::unique_ptr<vk::raii::SwapchainKHR> m_swapChain;

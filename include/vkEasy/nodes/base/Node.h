@@ -10,6 +10,7 @@ class Node : public Errorable, public Object {
     friend class Graph;
     friend class Device;
     friend class Buffer;
+    friend class Image;
 
 public:
     Node(Node const&) = delete;
@@ -31,7 +32,7 @@ protected:
     virtual void update() = 0;
     std::vector<vk::raii::CommandBuffer*> getCommandBuffers(size_t count);
 
-    vk::QueueFlags m_neededQueueTypes;
+    vk::QueueFlagBits m_neededQueueType;
     vk::PipelineStageFlagBits m_pipelineStage = vk::PipelineStageFlagBits::eNoneKHR;
 
 private:

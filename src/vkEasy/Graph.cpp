@@ -199,6 +199,9 @@ void Graph::execute()
     for (auto& command : m_commands)
         command();
 
+    if (m_window)
+        m_window->m_swapChain->prepareForPresentation();
+
     auto buffers = m_commandBuffers[getCurrentFrameInFlight()].endCommandBuffers();
     submitInfo.setCommandBuffers(buffers);
     getDevice()->sendCommandBuffers(&submitInfo, m_inFlightFence[getCurrentFrameInFlight()].get());

@@ -7,6 +7,8 @@ GraphicsNode::GraphicsNode()
     : PipelineNode("GraphicsNode")
 {
     // m_dynamicStates = { vk::DynamicState::eViewport, vk::DynamicState::eLineWidth };
+    m_neededQueueType = vk::QueueFlagBits::eGraphics;
+    m_pipelineStage = vk::PipelineStageFlagBits::eAllGraphics;
 
     m_graphicsPipelineCreateInfo.setPVertexInputState(&m_vertexInputState)
         .setPInputAssemblyState(&m_inputAssemblyState)
@@ -127,7 +129,7 @@ void GraphicsNode::setColorAttachment(AttachmentImage* attachment, size_t layout
         m_colorAttachments.resize(layout + 1);
     m_colorAttachments[layout]
         .setAttachment(attachment->getIndex())
-        .setLayout(vk::ImageLayout::eColorAttachmentOptimal);
+        .setLayout(attachment->getRequiredLayout(vk::PipelineStageFlagBits::eAllGraphics, Resource::Access::ReadWrite));
     m_subpassDescription.setColorAttachments(m_colorAttachments);
     uses(attachment, Resource::Access::ReadWrite);
 }

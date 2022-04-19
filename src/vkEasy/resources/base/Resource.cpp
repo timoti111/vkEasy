@@ -44,7 +44,9 @@ bool Resource::exists()
 void Resource::update()
 {
     if (!exists()) {
-        m_lastAccess[getActualFrameIndex()].reset();
+        m_lastAccess[getActualFrameIndex()] = AccessInfo();
+        m_queueIndicesVector.clear();
+        m_queueIndicesVector.insert(m_queueIndicesVector.end(), m_queueIndices.begin(), m_queueIndices.end());
         create();
     }
 
@@ -53,6 +55,8 @@ void Resource::update()
             char* mapped = reinterpret_cast<char*>(m_vmaResource[getActualFrameIndex()]->mapMemory());
             memcpy(mapped + m_writeOffset, m_writeData.data(), m_writeData.size());
             m_vmaResource[getActualFrameIndex()]->unmapMemory();
+            getLastAccessInfo().lastWrite = vk::PipelineStageFlagBits::eHost;
+            getLastAccessInfo().lastAccess = vk::AccessFlagBits::eHostWrite;
         } else {
             if (!m_writeStagingBuffer)
                 m_writeStagingBuffer = &getGraph()->createStagingBuffer();
@@ -83,7 +87,6 @@ void Resource::destroy()
         m_readStagingBuffer->destroy();
     if (m_isPersistent)
         return;
-    m_lastAccess[getActualFrameIndex()].reset();
     m_vmaResource[getActualFrameIndex()].reset();
 }
 
@@ -97,7 +100,7 @@ size_t Resource::getActualFrameIndex()
     return m_isPersistent ? 0 : getGraph()->getImageIndex();
 }
 
-std::optional<Resource::AccessInfo>& Resource::getLastAccess()
+Resource::AccessInfo& Resource::getLastAccessInfo()
 {
     return m_lastAccess[getActualFrameIndex()];
 }

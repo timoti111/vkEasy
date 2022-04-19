@@ -7,7 +7,7 @@ using namespace VK_EASY_NAMESPACE;
 ComputeNode::ComputeNode()
     : PipelineNode("ComputeNode")
 {
-    m_neededQueueTypes = vk::QueueFlagBits::eCompute;
+    m_neededQueueType = vk::QueueFlagBits::eCompute;
     m_pipelineStage = vk::PipelineStageFlagBits::eComputeShader;
 }
 

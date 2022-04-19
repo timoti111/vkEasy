@@ -24,8 +24,11 @@ public:
 protected:
     Buffer();
     virtual void create();
+    void insertBufferBarrier(
+        vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst, const vk::BufferMemoryBarrier& barrier);
     virtual void transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset);
     virtual void transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset);
+    virtual void solveSynchronization(vk::PipelineStageFlagBits stage, Access access);
 
     vk::BufferUsageFlags m_bufferUsageFlags;
     vk::BufferCreateInfo m_bufferCreateInfo;

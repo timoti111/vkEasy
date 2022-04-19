@@ -8,7 +8,7 @@ using namespace VK_EASY_NAMESPACE;
 BufferCopyNode::BufferCopyNode()
     : Node("BufferCopyNode")
 {
-    m_neededQueueTypes = vk::QueueFlagBits::eTransfer;
+    m_neededQueueType = vk::QueueFlagBits::eTransfer;
     m_pipelineStage = vk::PipelineStageFlagBits::eTransfer;
 }
 

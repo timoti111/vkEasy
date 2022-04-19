@@ -54,8 +54,10 @@ void Framebuffer::build()
             .setStoreOp(vk::AttachmentStoreOp::eStore)
             .setStencilLoadOp(vk::AttachmentLoadOp::eDontCare)
             .setStencilStoreOp(vk::AttachmentStoreOp::eDontCare)
-            .setInitialLayout(vk::ImageLayout::eUndefined)
-            .setFinalLayout(vk::ImageLayout::ePresentSrcKHR);
+            .setInitialLayout(
+                attachment->getRequiredLayout(vk::PipelineStageFlagBits::eAllGraphics, Resource::Access::ReadWrite))
+            .setFinalLayout(
+                attachment->getRequiredLayout(vk::PipelineStageFlagBits::eAllGraphics, Resource::Access::ReadWrite));
         m_attachmentDescriptions.push_back(description);
     }
 

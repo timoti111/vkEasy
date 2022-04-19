@@ -75,9 +75,9 @@ void Device::findPhysicalDevice()
         }
     };
     for (auto& graph : m_graphs)
-        for (auto& node : graph->m_timeline) {
-            m_neededQueues = m_neededQueues | node.renderTask->m_neededQueueTypes;
-            for (auto& requiredExtension : node.renderTask->m_neededExtensions)
+        for (auto& node : graph->m_nodes) {
+            m_neededQueues = m_neededQueues | node->m_neededQueueType;
+            for (auto& requiredExtension : node->m_neededExtensions)
                 m_requiredExtensions.insert(requiredExtension);
         }
     addIfExists(VK_KHR_DEDICATED_ALLOCATION_EXTENSION_NAME);
@@ -190,4 +190,9 @@ void Device::sendCommandBuffers(vk::SubmitInfo* submitInfo, vk::raii::Fence* fen
         m_queue->submit(*submitInfo, **fence);
     else
         m_queue->submit(*submitInfo);
+}
+
+uint32_t Device::getQueueIndex(vk::QueueFlagBits queueType)
+{
+    return m_queueIndex;
 }
