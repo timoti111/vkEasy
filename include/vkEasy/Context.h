@@ -22,9 +22,11 @@ public:
     void addExtensions(const std::vector<std::string>& extensions);
     void addLayer(const std::string& layer);
     void addLayers(const std::vector<std::string>& layers);
+    void setDebugOutput(bool debug);
+    bool getDebugOutput();
 
     vk::raii::PhysicalDevices& getPhysicalDevices();
-    vk::easy::Device& createDevice(vk::raii::PhysicalDevice* device = nullptr);
+    vk::easy::Device& createDevice(size_t index = ~0);
 
 private:
     Context();
@@ -47,5 +49,7 @@ private:
     static VKAPI_ATTR VkBool32 VKAPI_CALL debugUtilsMessengerCallback(
         VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageTypes,
         VkDebugUtilsMessengerCallbackDataEXT const* pCallbackData, void*);
+
+    bool m_debugOutput = false;
 };
 } // namespace VK_EASY_NAMESPACE

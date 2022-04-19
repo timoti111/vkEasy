@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vkEasy/Context.h>
 #include <vkEasy/Device.h>
 #include <vkEasy/Graph.h>
 #include <vkEasy/nodes/base/Node.h>
@@ -21,7 +22,6 @@ void Node::uses(Resource* resource, Resource::Access access)
         m_writes.insert(resource);
         m_reads.erase(resource);
     }
-    resource->m_queueIndices.emplace(getDevice()->getQueueIndex(m_neededQueueType));
 }
 
 void Node::execute()
@@ -44,9 +44,8 @@ void Node::execute()
         write->solveSynchronization(m_pipelineStage, Resource::Access::ReadWrite);
     }
 
-#ifndef NDEBUG
-    std::cout << "Executing { " << objectName() << " }" << std::endl;
-#endif
+    if (Context::get().getDebugOutput())
+        std::cout << "Executing { " << objectName() << " }" << std::endl;
 
     update();
 }

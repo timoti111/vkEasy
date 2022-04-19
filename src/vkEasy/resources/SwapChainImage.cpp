@@ -37,8 +37,12 @@ void SwapChainImage::update()
         }
     }
     for (const auto& availablePresentMode : presentModes) {
-        if (availablePresentMode == vk::PresentModeKHR::eMailbox)
+        if (availablePresentMode == vk::PresentModeKHR::eImmediate)
+            m_swapChainCreateInfo.setPresentMode(vk::PresentModeKHR::eImmediate);
+        if (availablePresentMode == vk::PresentModeKHR::eMailbox) {
             m_swapChainCreateInfo.setPresentMode(vk::PresentModeKHR::eMailbox);
+            break;
+        }
     }
     if (!found)
         m_swapChainCreateInfo.setImageFormat(formats[0].format).setImageColorSpace(formats[0].colorSpace);
@@ -48,8 +52,10 @@ void SwapChainImage::update()
         = std::clamp(resolution.width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
     resolution.height
         = std::clamp(resolution.height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
-
-    m_swapChainCreateInfo.setMinImageCount(std::min(capabilities.minImageCount + 1, capabilities.maxImageCount))
+    auto minImageCount = capabilities.maxImageCount
+        ? std::min(capabilities.minImageCount + 1, capabilities.maxImageCount)
+        : capabilities.minImageCount;
+    m_swapChainCreateInfo.setMinImageCount(minImageCount)
         .setImageArrayLayers(1)
         .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
         .setImageSharingMode(vk::SharingMode::eExclusive)

@@ -6,20 +6,16 @@ const uint32_t BUFFER_ELEMENTS = 32;
 int main()
 {
     // Setup phase
+    vk::easy::Context::get().setDebugOutput(true);
     auto& device = vk::easy::Context::get().createDevice();
     auto& graph = device.createGraph();
-
-    const size_t bufferSize = BUFFER_ELEMENTS * sizeof(uint32_t);
 
     std::vector<uint32_t> computeInput(BUFFER_ELEMENTS);
     uint32_t n = 0;
     std::generate(computeInput.begin(), computeInput.end(), [&n] { return n++; });
 
-    auto dataPtr8 = reinterpret_cast<uint8_t*>(computeInput.data());
-    std::vector<uint8_t> computeInputBytes(dataPtr8, dataPtr8 + bufferSize);
-
     auto& gpuBuffer = graph.createStorageBuffer();
-    gpuBuffer.setData(computeInputBytes);
+    gpuBuffer.setData(computeInput);
     gpuBuffer.setDataToRead();
 
     auto& compute = graph.createComputeNode();

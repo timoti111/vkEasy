@@ -1,4 +1,5 @@
 #include <iostream>
+#include <vkEasy/Context.h>
 #include <vkEasy/Device.h>
 #include <vkEasy/nodes/BufferCopyNode.h>
 #include <vkEasy/resources/base/Buffer.h>
@@ -100,9 +101,8 @@ void Buffer::insertBufferBarrier(
     auto buffers = getGraph()->getCommandBuffers(1);
     if (buffers.empty())
         return;
-#ifndef NDEBUG
-    std ::cout << "Adding buffer barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst) << " }"
-               << std::endl;
-#endif
+    if (Context::get().getDebugOutput())
+        std ::cout << "Adding buffer barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst)
+                   << " }" << std::endl;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, barrier, {});
 }

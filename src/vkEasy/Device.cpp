@@ -6,10 +6,10 @@
 
 using namespace VK_EASY_NAMESPACE;
 
-Device::Device(vk::raii::PhysicalDevice* device)
+Device::Device(size_t index)
     : Errorable("Device")
 {
-    m_physicalDevice = device;
+    m_physicalDeviceIndex = index;
 }
 
 Graph& Device::createGraph()
@@ -48,10 +48,13 @@ void Device::findPhysicalDevice()
             m_windows.back()->update();
         }
     }
+    auto& physicalDevices = vk::easy::Context::get().getPhysicalDevices();
+    if (m_physicalDeviceIndex < physicalDevices.size())
+        m_physicalDevice = &physicalDevices[m_physicalDeviceIndex];
 
     if (!m_physicalDevice) {
         std::multimap<int, vk::raii::PhysicalDevice*> candidates;
-        for (auto& physicalDevice : vk::easy::Context::get().getPhysicalDevices()) {
+        for (auto& physicalDevice : physicalDevices) {
             int score = 0;
             // score GPUs
             if (!m_windows.empty()) {
@@ -59,6 +62,7 @@ void Device::findPhysicalDevice()
                 for (size_t queueIndex = 0; queueIndex < queueFamilyProperties.size(); queueIndex++)
                     score += physicalDevice.getSurfaceSupportKHR(queueIndex, **m_windows[0]->m_surface) ? 1000 : 0;
             }
+            score += physicalDevice.getProperties().deviceType == vk::PhysicalDeviceType::eDiscreteGpu ? 1000 : 0;
             candidates.emplace(score, &physicalDevice);
         }
         m_physicalDevice = candidates.rbegin()->second;
@@ -139,17 +143,17 @@ void Device::initialize()
 
     initializeVMA();
 
-#ifndef NDEBUG
-    auto properties = m_physicalDevice->getProperties();
-    auto version = properties.apiVersion;
-    std::cout << "GPU instance initialised with: " << std::endl;
-    std::cout << "Name: " << properties.deviceName.data() << std::endl;
-    std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
-              << VK_VERSION_PATCH(version) << std::endl;
-    std::for_each(m_requiredExtensions.begin(), m_requiredExtensions.end(),
-        [](const auto& ext) { std::cout << "Device Extension: " << ext << std::endl; });
-    std::cout << std::endl;
-#endif
+    if (Context::get().getDebugOutput()) {
+        auto properties = m_physicalDevice->getProperties();
+        auto version = properties.apiVersion;
+        std::cout << "GPU instance initialised with: " << std::endl;
+        std::cout << "Name: " << properties.deviceName.data() << std::endl;
+        std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
+                  << VK_VERSION_PATCH(version) << std::endl;
+        std::for_each(m_requiredExtensions.begin(), m_requiredExtensions.end(),
+            [](const auto& ext) { std::cout << "Device Extension: " << ext << std::endl; });
+        std::cout << std::endl;
+    }
 
     m_initialized = true;
 }

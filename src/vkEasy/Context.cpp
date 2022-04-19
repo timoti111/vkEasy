@@ -16,10 +16,10 @@ void Context::initialize()
     if (context.m_instance)
         return;
 
-#ifndef NDEBUG
-    context.addLayer("VK_LAYER_KHRONOS_validation");
-    context.addExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
+    if (Context::get().getDebugOutput()) {
+        context.addLayer("VK_LAYER_KHRONOS_validation");
+        context.addExtension(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+    }
 
     context.addExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME);
 
@@ -72,17 +72,17 @@ void Context::initialize()
         context.m_debugMessenger = std::make_unique<vk::raii::DebugUtilsMessengerEXT>(
             *context.m_instance, context.m_debugMessengerCreateInfo);
 
-#ifndef NDEBUG
-    auto version = context.m_instanceCreateInfo.pApplicationInfo->apiVersion;
-    std::cout << "Vulkan instance initialised with: " << std::endl;
-    std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
-              << VK_VERSION_PATCH(version) << std::endl;
-    std::for_each(context.m_layers.begin(), context.m_layers.end(),
-        [](const auto& ext) { std::cout << "Instance Layer: " << ext << std::endl; });
-    std::for_each(context.m_extensions.begin(), context.m_extensions.end(),
-        [](const auto& ext) { std::cout << "Instance Extension: " << ext << std::endl; });
-    std::cout << std::endl;
-#endif
+    if (Context::get().getDebugOutput()) {
+        auto version = context.m_instanceCreateInfo.pApplicationInfo->apiVersion;
+        std::cout << "Vulkan instance initialised with: " << std::endl;
+        std::cout << "Version: " << VK_VERSION_MAJOR(version) << "." << VK_VERSION_MINOR(version) << "."
+                  << VK_VERSION_PATCH(version) << std::endl;
+        std::for_each(context.m_layers.begin(), context.m_layers.end(),
+            [](const auto& ext) { std::cout << "Instance Layer: " << ext << std::endl; });
+        std::for_each(context.m_extensions.begin(), context.m_extensions.end(),
+            [](const auto& ext) { std::cout << "Instance Extension: " << ext << std::endl; });
+        std::cout << std::endl;
+    }
 
     context.m_physicalDevices = std::make_unique<vk::raii::PhysicalDevices>(*context.m_instance);
 }
@@ -222,13 +222,23 @@ vk::raii::PhysicalDevices& Context::getPhysicalDevices()
     return *m_physicalDevices;
 }
 
-Device& Context::createDevice(vk::raii::PhysicalDevice* device)
+Device& Context::createDevice(size_t index)
 {
-    m_devices.push_back(std::unique_ptr<Device>(new Device(device)));
+    m_devices.push_back(std::unique_ptr<Device>(new Device(index)));
     return *m_devices.back().get();
 }
 
 vk::raii::Instance& Context::instance()
 {
     return *m_instance;
+}
+
+void Context::setDebugOutput(bool debug)
+{
+    m_debugOutput = debug;
+}
+
+bool Context::getDebugOutput()
+{
+    return m_debugOutput;
 }

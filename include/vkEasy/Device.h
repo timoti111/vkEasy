@@ -25,7 +25,7 @@ public:
 
 private:
     Device() = delete;
-    Device(vk::raii::PhysicalDevice* device);
+    Device(size_t index);
     void findPhysicalDevice();
     void initializeVMA();
     uint32_t getQueueIndex(vk::QueueFlagBits queueType);
@@ -48,5 +48,6 @@ private:
     std::vector<WSI*> m_windows;
     vk::raii::PhysicalDevice* m_physicalDevice = nullptr;
     bool m_initialized = false;
+    size_t m_physicalDeviceIndex;
 };
 } // namespace VK_EASY_NAMESPACE

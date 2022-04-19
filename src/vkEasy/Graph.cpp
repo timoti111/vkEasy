@@ -177,10 +177,9 @@ void Graph::execute()
             .setSignalSemaphores(**m_renderFinishedSemaphore[getCurrentFrameInFlight()]);
     }
 
-#ifndef NDEBUG
-    std::cout << "Executing graph, current frameInFlight: " << getCurrentFrameInFlight()
-              << " currentSwapChainImage: " << m_imageIndex << std::endl;
-#endif
+    if (Context::get().getDebugOutput())
+        std::cout << "Executing graph, current frameInFlight: " << getCurrentFrameInFlight()
+                  << " currentSwapChainImage: " << m_imageIndex << std::endl;
 
     getDevice()->getLogicalDevice()->resetFences(**m_inFlightFence[getCurrentFrameInFlight()]);
     m_commandBuffers[getCurrentFrameInFlight()].resetCommandBuffers();
@@ -225,9 +224,8 @@ void Graph::execute()
         }
     }
 
-#ifndef NDEBUG
-    std::cout << std::endl;
-#endif
+    if (Context::get().getDebugOutput())
+        std::cout << std::endl;
 
     m_currentFrameInFlight = (m_currentFrameInFlight + 1) % m_framesInFlight;
 }
