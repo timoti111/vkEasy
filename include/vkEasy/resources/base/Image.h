@@ -5,6 +5,10 @@
 
 namespace VK_EASY_NAMESPACE {
 class MemoryCopyNode;
+class Graph;
+class Framebuffer;
+class GraphicsNode;
+class PipelineNode;
 
 class Image : public Resource {
     friend class Graph;

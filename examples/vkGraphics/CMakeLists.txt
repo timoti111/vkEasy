@@ -17,6 +17,12 @@ file(GLOB_RECURSE vkGraphics_SHADERS
     "shaders/*.spv"
 )
 
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders/frag.spv" "${CMAKE_CURRENT_BINARY_DIR}/Release/shaders/frag.spv" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders/vert.spv" "${CMAKE_CURRENT_BINARY_DIR}/Release/shaders/vert.spv" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders/frag.spv" "${CMAKE_CURRENT_BINARY_DIR}/Debug/shaders/frag.spv" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders/vert.spv" "${CMAKE_CURRENT_BINARY_DIR}/Debug/shaders/vert.spv" COPYONLY)
+endif()
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders/frag.spv" "${CMAKE_CURRENT_BINARY_DIR}/shaders/frag.spv" COPYONLY)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shaders/vert.spv" "${CMAKE_CURRENT_BINARY_DIR}/shaders/vert.spv" COPYONLY)
 

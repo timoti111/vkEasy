@@ -4,6 +4,7 @@
 #include <vkEasy/Graph.h>
 #include <vkEasy/MemoryAllocator.h>
 #include <vkEasy/global.h>
+#include <mutex>
 
 namespace VK_EASY_NAMESPACE {
 class Device : public Errorable {

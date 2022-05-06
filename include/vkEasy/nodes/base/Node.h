@@ -6,6 +6,10 @@
 #include <vkEasy/resources/base/Resource.h>
 
 namespace VK_EASY_NAMESPACE {
+class Graph;
+class Device;
+class Buffer;
+class Image;
 class Node : public Errorable, public Object {
     friend class Graph;
     friend class Device;

@@ -10,11 +10,11 @@ option (VK_EASY_BUILD_EXAMPLES "Build the GLFW example programs" ON)
 option (VK_EASY_BUILD_WITH_LOCAL_VULKAN_HPP "Build with local Vulkan headers" ON)
 option (VK_EASY_BUILD_ONLY_DYNAMIC "Build only dynamic. Required in case the Vulkan SDK is not available" OFF)
 
-if(NOT (BUILD_ONLY_DYNAMIC AND BUILD_WITH_LOCAL_VULKAN_HPP))
+if(NOT (VK_EASY_BUILD_ONLY_DYNAMIC AND VK_EASY_BUILD_WITH_LOCAL_VULKAN_HPP))
   find_package(Vulkan REQUIRED)
 endif()
 
-if (BUILD_WITH_LOCAL_VULKAN_HPP)
+if (VK_EASY_BUILD_WITH_LOCAL_VULKAN_HPP)
   include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extras/Vulkan-Hpp")
   include_directories("${CMAKE_CURRENT_SOURCE_DIR}/extras/Vulkan-Hpp/Vulkan-Headers/include")
 else()

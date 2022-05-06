@@ -16,6 +16,10 @@ file(GLOB_RECURSE vkCompute_SHADERS
     "*.spv"
 )
 
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/headless.comp.spv" "${CMAKE_CURRENT_BINARY_DIR}/Release/headless.comp.spv" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/headless.comp.spv" "${CMAKE_CURRENT_BINARY_DIR}/Debug/headless.comp.spv" COPYONLY)
+endif()
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/headless.comp.spv" "${CMAKE_CURRENT_BINARY_DIR}/headless.comp.spv" COPYONLY)
 
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
@@ -25,7 +29,6 @@ elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
 else()
     message(FATAL_ERROR, "Vulkan-Hpp: unhandled platform for samples!")
 endif()
-
 
 source_group(headers FILES ${vkCompute_HEADERS})
 source_group(sources FILES ${vkCompute_SOURCES})

@@ -17,6 +17,18 @@ file(GLOB_RECURSE vkEasyGraphicsTexture_SHADERS
     "*.frag"
 )
 
+if (CMAKE_SYSTEM_NAME MATCHES "Windows")
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.vert" "${CMAKE_CURRENT_BINARY_DIR}/Release/shader.vert" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.frag" "${CMAKE_CURRENT_BINARY_DIR}/Release/shader.frag" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/texture.jpg" "${CMAKE_CURRENT_BINARY_DIR}/Release/texture.jpg" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.vert" "${CMAKE_CURRENT_BINARY_DIR}/Debug/shader.vert" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.frag" "${CMAKE_CURRENT_BINARY_DIR}/Debug/shader.frag" COPYONLY)
+    configure_file("${CMAKE_CURRENT_SOURCE_DIR}/texture.jpg" "${CMAKE_CURRENT_BINARY_DIR}/Debug/texture.jpg" COPYONLY)
+endif()
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.vert" "${CMAKE_CURRENT_BINARY_DIR}/shader.vert" COPYONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/shader.frag" "${CMAKE_CURRENT_BINARY_DIR}/shader.frag" COPYONLY)
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/texture.jpg" "${CMAKE_CURRENT_BINARY_DIR}/texture.jpg" COPYONLY)
+
 source_group(headers FILES ${vkEasyGraphicsTexture_HEADERS})
 source_group(sources FILES ${vkEasyGraphicsTexture_SOURCES})
 

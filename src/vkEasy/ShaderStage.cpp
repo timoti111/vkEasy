@@ -85,12 +85,8 @@ std::vector<uint32_t> ShaderStage::compileFile(
 std::vector<uint32_t> ShaderStage::loadShader(const std::string& fileName)
 {
     bool isSPIRV = fileName.find(".spv") != std::string::npos;
-    std::ios_base::openmode openMode = std::ios::in | std::ios::ate;
-    if (isSPIRV)
-        openMode |= std::ios::binary;
     std::vector<uint32_t> shaderCode;
-
-    std::ifstream is(fileName, openMode);
+    std::ifstream is(fileName, std::ios::in | std::ios::ate | std::ios::binary);
 
     if (is.is_open()) {
         size_t size = is.tellg();
