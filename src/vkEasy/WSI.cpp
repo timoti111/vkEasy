@@ -18,7 +18,7 @@ void WSI::update()
         createSurface();
 }
 
-AttachmentImage* WSI::getAttachment()
+ColorAttachment* WSI::getAttachment()
 {
     return m_swapChain;
 }

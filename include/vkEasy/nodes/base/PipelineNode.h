@@ -30,24 +30,26 @@ protected:
     PipelineNode(const std::string& nodeName);
     void needsRebuild();
     virtual void buildPipeline() = 0;
-    void build();
+    void buildLayout();
+    void buildDescriptorSet();
     ShaderStage* getShaderStage(const vk::ShaderStageFlagBits& stage);
 
+    std::map<size_t, std::map<size_t, Descriptor>> m_layout;
     std::map<vk::ShaderStageFlagBits, std::unique_ptr<ShaderStage>> m_stages;
     std::unique_ptr<vk::raii::Pipeline> m_pipeline;
     std::unique_ptr<vk::raii::PipelineCache> m_pipelineCache;
-    std::unique_ptr<vk::raii::DescriptorPool> m_descriptorPool;
     std::vector<std::unique_ptr<vk::raii::DescriptorSetLayout>> m_setLayouts;
-    std::unique_ptr<vk::raii::DescriptorSets> m_descriptorSets;
-    std::vector<vk::DescriptorSet> m_descriptorSetsToBind;
     std::vector<vk::DescriptorSetLayout> m_setLayoutsVk;
     std::unique_ptr<vk::raii::PipelineLayout> m_pipelineLayout;
+    std::vector<vk::DescriptorPoolSize> m_poolSizes;
+
+    std::map<size_t, std::unique_ptr<vk::raii::DescriptorPool>> m_descriptorPool;
+    std::map<size_t, std::unique_ptr<vk::raii::DescriptorSets>> m_descriptorSets;
+    std::map<size_t, std::vector<vk::DescriptorSet>> m_descriptorSetsToBind;
+    std::map<size_t, std::vector<vk::WriteDescriptorSet>> m_writeDescriptorSets;
 
     std::function<void()> m_basePipelineUpdateFunction;
     bool m_pipelineRebuild = true;
     bool m_pipelineLayoutRebuild = true;
-    std::map<size_t, std::map<size_t, Descriptor>> m_layout;
-    std::vector<vk::DescriptorPoolSize> m_poolSizes;
-    std::vector<vk::WriteDescriptorSet> m_writeDescriptorSets;
 };
 } // namespace VK_EASY_NAMESPACE

@@ -4,7 +4,14 @@
 #include <vkEasy/resources/base/Resource.h>
 
 namespace VK_EASY_NAMESPACE {
+class MemoryCopyNode;
+
 class Image : public Resource {
+    friend class Graph;
+    friend class Framebuffer;
+    friend class GraphicsNode;
+    friend class PipelineNode;
+
 public:
     Image(Image const&) = delete;
     void operator=(Image const&) = delete;
@@ -12,6 +19,7 @@ public:
 
     void addImageUsageFlag(vk::ImageUsageFlagBits flag);
     VkImage getVkImage();
+    VkSampler getSampler();
     virtual vk::raii::ImageView* getVkImageView(uint32_t imageIndex);
 
     void setDimensionality(const vk::ImageType& dimensionality);
@@ -35,6 +43,10 @@ public:
     void setImageTiling(const vk::ImageTiling& imageTiling);
     vk::ImageTiling getImageTiling();
 
+    void setData(const uint8_t* data, size_t size, size_t offset = 0);
+
+    vk::ImageAspectFlags getAspectMask();
+
 protected:
     Image();
     virtual void create();
@@ -44,19 +56,25 @@ protected:
         std::optional<vk::ImageLayout> lastLayout;
     };
 
+    void setIndex(size_t frameBufferIndex);
+    size_t getIndex();
     void insertImageBarrier(
         vk::PipelineStageFlagBits src, vk::PipelineStageFlagBits dst, const vk::ImageMemoryBarrier& barrier);
-    virtual void transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) {};
-    virtual void transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset) {};
+    virtual void transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset);
+    virtual void transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset);
     virtual void solveSynchronization(vk::PipelineStageFlagBits stage, Access access);
-    virtual vk::ImageLayout getRequiredLayout(vk::PipelineStageFlagBits stage, Access access) = 0;
+    virtual vk::ImageLayout getRequiredLayout(vk::PipelineStageFlagBits stage, Access access);
     ImageAccessInfo& getLastImageAccessInfo();
+    virtual vk::ClearValue getClearValue() = 0;
 
-    vk::ImageUsageFlags m_imageUsageFlags;
     vk::ImageCreateInfo m_imageCreateInfo;
-    vk::ImageAspectFlagBits m_imageAspect;
+    vk::ImageAspectFlags m_imageAspect;
     std::map<size_t, ImageAccessInfo> m_lastImageAccess;
     std::map<size_t, VkImage> m_images;
     std::map<size_t, std::unique_ptr<vk::raii::ImageView>> m_views;
+    std::unique_ptr<vk::raii::Sampler> m_sampler;
+    size_t m_index;
+
+    MemoryCopyNode* m_bufferCopyNode = nullptr;
 };
 }

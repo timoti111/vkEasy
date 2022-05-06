@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vkEasy/Context.h>
 #include <vkEasy/Device.h>
+#include <vkEasy/nodes/MemoryCopyNode.h>
 #include <vkEasy/resources/base/Image.h>
 
 using namespace VK_EASY_NAMESPACE;
@@ -8,10 +9,13 @@ using namespace VK_EASY_NAMESPACE;
 Image::Image()
     : Resource()
 {
-    setImageTiling(vk::ImageTiling::eOptimal);
+    setFormat(vk::Format::eR8G8B8A8Srgb);
+    setMipLevels(1);
+    setArrayLayers(1);
     addImageUsageFlag(vk::ImageUsageFlagBits::eTransferSrc);
     addImageUsageFlag(vk::ImageUsageFlagBits::eTransferDst);
     m_imageCreateInfo.setInitialLayout(vk::ImageLayout::eUndefined);
+    m_imageAspect = vk::ImageAspectFlagBits::eColor;
 }
 
 void Image::addImageUsageFlag(vk::ImageUsageFlagBits flag)
@@ -35,6 +39,11 @@ void Image::create()
     m_vmaResource[getActualFrameIndex()] = getDevice()->getAllocator()->createImage(m_imageCreateInfo, m_allocInfo);
     m_images[getActualFrameIndex()]
         = **dynamic_cast<MemoryAllocator::Image*>(m_vmaResource[getActualFrameIndex()].get());
+    createView(getActualFrameIndex());
+
+    vk::SamplerCreateInfo info;
+    if (!m_sampler)
+        m_sampler = std::make_unique<vk::raii::Sampler>(*getDevice()->getLogicalDevice(), info);
 }
 
 void Image::setDimensionality(const vk::ImageType& dimensionality)
@@ -109,7 +118,14 @@ vk::ImageTiling Image::getImageTiling()
 
 vk::raii::ImageView* Image::getVkImageView(uint32_t imageIndex)
 {
-    return m_views[imageIndex].get();
+    return m_views[m_isPersistent ? 0 : imageIndex].get();
+}
+
+VkSampler Image::getSampler()
+{
+    if (m_sampler)
+        return **m_sampler;
+    return VK_NULL_HANDLE;
 }
 
 void Image::createView(size_t index)
@@ -121,7 +137,7 @@ void Image::createView(size_t index)
         .setB(vk::ComponentSwizzle::eIdentity)
         .setA(vk::ComponentSwizzle::eIdentity);
     vk::ImageSubresourceRange subresourceRange;
-    subresourceRange.setAspectMask(vk::ImageAspectFlagBits::eColor)
+    subresourceRange.setAspectMask(m_imageAspect)
         .setBaseMipLevel(0)
         .setLevelCount(1)
         .setBaseArrayLayer(0)
@@ -134,13 +150,33 @@ void Image::createView(size_t index)
     m_views[index] = std::make_unique<vk::raii::ImageView>(*getDevice()->getLogicalDevice(), viewCreateInfo);
 }
 
+void Image::transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset)
+{
+    if (!m_bufferCopyNode)
+        m_bufferCopyNode = &getGraph()->createNode<MemoryCopyNode>();
+    m_bufferCopyNode->setSrcBuffer(*stagingBuffer, VK_WHOLE_SIZE, offset);
+    m_bufferCopyNode->setDstImage(*this);
+    m_bufferCopyNode->execute();
+};
+
+void Image::transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset)
+{
+    if (!m_bufferCopyNode)
+        m_bufferCopyNode = &getGraph()->createNode<MemoryCopyNode>();
+    m_bufferCopyNode->setSrcImage(*this, stagingBuffer->getSize());
+    m_bufferCopyNode->setDstBuffer(*stagingBuffer, offset);
+    m_bufferCopyNode->execute();
+};
+
 void Image::solveSynchronization(vk::PipelineStageFlagBits stage, Access access)
 {
     auto& lastAccess = getLastAccessInfo();
     auto& lastImageAccess = getLastImageAccessInfo();
     auto nextStage = stage;
     auto nextAccess = access == Access::ReadOnly ? vk::AccessFlagBits::eMemoryRead : vk::AccessFlagBits::eMemoryWrite;
-    auto nextLayout = getRequiredLayout(nextStage, access);
+    auto nextLayout = stage == vk::PipelineStageFlagBits::eTransfer
+        ? (access == Access::ReadOnly ? vk::ImageLayout::eTransferSrcOptimal : vk::ImageLayout::eTransferDstOptimal)
+        : getRequiredLayout(nextStage, access);
     bool layoutChanged = false;
 
     vk::ImageMemoryBarrier imageBarrier;
@@ -194,4 +230,32 @@ void Image::insertImageBarrier(
         std ::cout << "Adding image barrier between { " << vk::to_string(src) << " } and { " << vk::to_string(dst)
                    << " }" << std::endl;
     buffers[0]->pipelineBarrier(src, dst, {}, {}, {}, barrier);
+}
+
+void Image::setData(const uint8_t* data, size_t size, size_t offset)
+{
+    setWriteData(data, size, offset);
+}
+
+vk::ImageLayout Image::getRequiredLayout(vk::PipelineStageFlagBits stage, Access access)
+{
+
+    if (stage == vk::PipelineStageFlagBits::eNone)
+        return vk::ImageLayout::ePresentSrcKHR;
+    return vk::ImageLayout::eShaderReadOnlyOptimal;
+}
+
+vk::ImageAspectFlags Image::getAspectMask()
+{
+    return m_imageAspect;
+}
+
+void Image::setIndex(size_t frameBufferIndex)
+{
+    m_index = frameBufferIndex;
+}
+
+size_t Image::getIndex()
+{
+    return m_index;
 }

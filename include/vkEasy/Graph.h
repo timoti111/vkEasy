@@ -18,6 +18,7 @@ class Graph : public Errorable, public Object {
     friend class Image;
     friend class Buffer;
     friend class Framebuffer;
+    friend class PipelineNode;
 
 public:
     ~Graph();
@@ -38,7 +39,7 @@ public:
     }
     GraphicsNode& createGraphicsNode();
     ComputeNode& createComputeNode();
-    BufferCopyNode& createBufferCopyNode();
+    MemoryCopyNode& createMemoryCopyNode();
 
     template <class T>
     requires(std::is_base_of_v<Resource, T> && !std::is_same_v<Resource, T>) T& createResource(
@@ -60,17 +61,20 @@ public:
         Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
     IndexBuffer& createIndexBuffer(
         Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
+    TextureImage& createTextureImage(
+        Resource::OptimizationFlags optimization = Resource::OptimizationFlags::NO_OPTIMIZATION);
 
     Framebuffer& createFramebuffer();
 
     GLFWWindow& getGLFWWindow(uint32_t width, uint32_t height, const std::string& title);
     void setNumberOfFramesInFlight(size_t count);
 
+    uint32_t getImageIndex();
+
 private:
     Graph(Device* device);
     void pushCommand(std::function<void()> command);
     void createSynchronizationObjects();
-    uint32_t getImageIndex();
     uint32_t getNumberOfImages();
     uint32_t getCurrentFrameInFlight();
     uint32_t getNumberOfFramesInFlight();

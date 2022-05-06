@@ -5,7 +5,7 @@
 using namespace VK_EASY_NAMESPACE;
 
 SwapChainImage::SwapChainImage()
-    : AttachmentImage()
+    : ColorAttachment()
 {
     m_swapChainCreateInfo.setImageFormat(vk::Format::eB8G8R8A8Srgb);
     m_swapChainCreateInfo.setImageColorSpace(vk::ColorSpaceKHR::eSrgbNonlinear);
@@ -57,7 +57,7 @@ void SwapChainImage::update()
         : capabilities.minImageCount;
     m_swapChainCreateInfo.setMinImageCount(minImageCount)
         .setImageArrayLayers(1)
-        .setImageUsage(vk::ImageUsageFlagBits::eColorAttachment)
+        .setImageUsage(m_imageCreateInfo.usage)
         .setImageSharingMode(vk::SharingMode::eExclusive)
         .setClipped(true)
         .setCompositeAlpha(vk::CompositeAlphaFlagBitsKHR::eOpaque)

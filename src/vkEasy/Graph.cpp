@@ -240,9 +240,9 @@ ComputeNode& Graph::createComputeNode()
     return this->createNode<ComputeNode>();
 }
 
-BufferCopyNode& Graph::createBufferCopyNode()
+MemoryCopyNode& Graph::createMemoryCopyNode()
 {
-    return this->createNode<BufferCopyNode>();
+    return this->createNode<MemoryCopyNode>();
 }
 
 StagingBuffer& Graph::createStagingBuffer(Resource::OptimizationFlags optimization)
@@ -268,6 +268,11 @@ VertexBuffer& Graph::createVertexBuffer(Resource::OptimizationFlags optimization
 IndexBuffer& Graph::createIndexBuffer(Resource::OptimizationFlags optimization)
 {
     return this->createResource<IndexBuffer>(optimization);
+}
+
+TextureImage& Graph::createTextureImage(Resource::OptimizationFlags optimization)
+{
+    return this->createResource<TextureImage>(optimization);
 }
 
 Framebuffer& Graph::createFramebuffer()

@@ -19,7 +19,7 @@ public:
     virtual bool shouldClose() = 0;
     virtual void pollEvents() = 0;
     vk::Extent2D resolution();
-    AttachmentImage* getAttachment();
+    ColorAttachment* getAttachment();
     void onResolutionChanged(std::function<void(const vk::Extent2D&)> event);
 
 protected:

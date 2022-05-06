@@ -35,6 +35,7 @@ GraphicsNode::GraphicsNode()
 
 void GraphicsNode::update()
 {
+    m_framebuffer->build();
     m_basePipelineUpdateFunction();
 
     auto graphicsBuffers = getCommandBuffers(1);
@@ -44,16 +45,16 @@ void GraphicsNode::update()
     m_framebuffer->begin(graphicsBuffers[0]);
     graphicsBuffers[0]->bindPipeline(vk::PipelineBindPoint::eGraphics, **m_pipeline);
     if (!m_descriptorSetsToBind.empty())
-        graphicsBuffers[0]->bindDescriptorSets(
-            vk::PipelineBindPoint::eGraphics, **m_pipelineLayout, 0, m_descriptorSetsToBind, {});
-    if (m_vertexBuffer)
-        graphicsBuffers[0]->bindVertexBuffers(0, vk::Buffer(m_vertexBuffer->getVkBuffer()), { 0 });
+        graphicsBuffers[0]->bindDescriptorSets(vk::PipelineBindPoint::eGraphics, **m_pipelineLayout, 0,
+            m_descriptorSetsToBind[getGraph()->getImageIndex()], {});
+    if (!m_vertexBuffers.empty())
+        graphicsBuffers[0]->bindVertexBuffers(0, m_vertexBuffers, m_vertexBufferOffsets);
+
     if (m_indexBuffer) {
         graphicsBuffers[0]->bindIndexBuffer(vk::Buffer(m_indexBuffer->getVkBuffer()), 0, m_indexBuffer->m_indexType);
         graphicsBuffers[0]->drawIndexed(m_indexBuffer->m_numberOfIndices, m_numberOfInstances, 0, 0, 0);
     } else
-        graphicsBuffers[0]->draw(
-            m_vertexBuffer ? m_vertexBuffer->m_numberOfVertices : m_numberOfVertices, m_numberOfInstances, 0, 0);
+        graphicsBuffers[0]->draw(m_numberOfVertices, m_numberOfInstances, 0, 0);
     m_framebuffer->end(graphicsBuffers[0]);
 }
 
@@ -62,16 +63,20 @@ void GraphicsNode::buildPipeline()
     std::vector<vk::PipelineShaderStageCreateInfo> stageInfos;
     for (auto& [key, element] : m_stages)
         stageInfos.push_back(*element->getPipelineShaderStageCreateInfo());
-    m_framebuffer->build();
 
-    if (m_vertexBuffer) {
-        m_bindingDescription.setBinding(0);
-        m_bindingDescription.setInputRate(
-            m_numberOfInstances == 1 ? vk::VertexInputRate::eVertex : vk::VertexInputRate::eInstance);
-        m_bindingDescription.setStride(m_vertexBuffer->getStride());
-        m_vertexInputState.setVertexAttributeDescriptions(m_vertexBuffer->getAttributes());
-        m_vertexInputState.setVertexBindingDescriptions(m_bindingDescription);
-        m_inputAssemblyState.setTopology(m_vertexBuffer->m_primitiveTopology);
+    if (!m_vertexBufferInfos.empty()) {
+        m_vertexBuffers.clear();
+        m_vertexBufferOffsets.clear();
+        for (auto& bufferInfo : m_vertexBufferInfos) {
+            m_vertexBuffers.push_back(bufferInfo.buffer->getVkBuffer());
+            m_vertexBufferOffsets.push_back(bufferInfo.offsetInBuffer);
+        }
+        // m_bindingDescription.setBinding(0);
+        // m_bindingDescription.setInputRate(
+        //     m_numberOfInstances == 1 ? vk::VertexInputRate::eVertex : vk::VertexInputRate::eInstance);
+        // m_bindingDescription.setStride(m_vertexBuffer->getStride());
+        m_vertexInputState.setVertexAttributeDescriptions(m_attributes);
+        m_vertexInputState.setVertexBindingDescriptions(m_bindingDescriptions);
     }
 
     vk::Viewport viewport;
@@ -113,38 +118,43 @@ void GraphicsNode::inOrder()
     m_framebuffer->m_subpassNodes.push_back(this);
 }
 
-Descriptor* GraphicsNode::setInputAttachment(
-    AttachmentImage* attachment, size_t attachmentIndex, size_t binding, size_t set)
+Descriptor* GraphicsNode::setInputAttachment(Image* attachment, size_t attachmentIndex, size_t binding, size_t set)
 {
     if (attachmentIndex + 1 > m_inputAttachments.size())
         m_inputAttachments.resize(attachmentIndex + 1);
-    m_inputAttachments[attachmentIndex].setAttachment(attachment->getIndex());
+    attachment->addImageUsageFlag(vk::ImageUsageFlagBits::eInputAttachment);
+    m_inputAttachments[attachmentIndex]
+        .setAttachment(attachment->getIndex())
+        .setLayout(attachment->getRequiredLayout(vk::PipelineStageFlagBits::eAllGraphics, Resource::Access::ReadWrite));
     m_subpassDescription.setInputAttachments(m_inputAttachments);
     return createDescriptor({ attachment }, binding, set);
 }
 
-void GraphicsNode::setColorAttachment(AttachmentImage* attachment, size_t layout)
+void GraphicsNode::setColorAttachment(ColorAttachment* attachment, size_t layout)
 {
+    Image* image = attachment;
     if (layout + 1 > m_colorAttachments.size())
         m_colorAttachments.resize(layout + 1);
+    attachment->addImageUsageFlag(vk::ImageUsageFlagBits::eColorAttachment);
     m_colorAttachments[layout]
         .setAttachment(attachment->getIndex())
-        .setLayout(attachment->getRequiredLayout(vk::PipelineStageFlagBits::eAllGraphics, Resource::Access::ReadWrite));
+        .setLayout(image->getRequiredLayout(vk::PipelineStageFlagBits::eAllGraphics, Resource::Access::ReadWrite));
     m_subpassDescription.setColorAttachments(m_colorAttachments);
     uses(attachment, Resource::Access::ReadWrite);
 }
 
-void GraphicsNode::setDepthStencilAttachment(AttachmentImage* attachment)
+void GraphicsNode::setDepthStencilAttachment(DepthStencilBuffer* attachment)
 {
-    m_depthStencilAttachment.setAttachment(attachment->getIndex());
+    Image* image = attachment;
+    m_depthStencilState.setDepthTestEnable(true)
+        .setDepthWriteEnable(true)
+        .setDepthCompareOp(vk::CompareOp::eLess)
+        .setMaxDepthBounds(1.0f);
+    attachment->addImageUsageFlag(vk::ImageUsageFlagBits::eDepthStencilAttachment);
+    m_depthStencilAttachment.setAttachment(attachment->getIndex())
+        .setLayout(image->getRequiredLayout(vk::PipelineStageFlagBits::eAllGraphics, Resource::Access::ReadWrite));
     m_subpassDescription.setPDepthStencilAttachment(&m_depthStencilAttachment);
     uses(attachment, Resource::Access::ReadWrite);
-}
-
-void GraphicsNode::setVertexBuffer(VertexBuffer* attachment)
-{
-    m_vertexBuffer = attachment;
-    uses(attachment, Resource::Access::ReadOnly);
 }
 
 void GraphicsNode::setIndexBuffer(IndexBuffer* attachment)
@@ -166,4 +176,129 @@ void GraphicsNode::setNumberOfVertices(uint32_t vertices)
 void GraphicsNode::setTopology(vk::PrimitiveTopology topology)
 {
     m_inputAssemblyState.setTopology(topology);
+}
+
+template <>
+void GraphicsNode::defineAttribute<int>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32Sint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<unsigned>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32Uint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<float>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32Sfloat, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<double>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR64Sfloat, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::vec1>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32Sfloat, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::vec2>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32Sfloat, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::vec3>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32B32Sfloat, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::vec4>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32B32A32Sfloat, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::uvec1>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32Uint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::uvec2>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32Uint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::uvec3>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32B32Uint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::uvec4>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32B32A32Uint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::ivec1>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32Sint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::ivec2>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32Sint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::ivec3>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32B32Sint, stride, buffer, offsetInBuffer);
+}
+
+template <>
+void GraphicsNode::defineAttribute<glm::ivec4>(
+    uint32_t location, uint32_t offset, uint32_t stride, VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    defineAttribute(location, offset, vk::Format::eR32G32B32A32Sint, stride, buffer, offsetInBuffer);
+}
+
+void GraphicsNode::defineAttribute(uint32_t location, uint32_t offset, vk::Format format, uint32_t stride,
+    VertexBuffer* buffer, vk::DeviceSize offsetInBuffer)
+{
+    uses(buffer, Resource::Access::ReadOnly);
+    vk::VertexInputBindingDescription bindingDescription;
+    bindingDescription.setBinding(m_vertexBufferInfos.size()).setStride(stride);
+    m_bindingDescriptions.push_back(bindingDescription);
+    vk::VertexInputAttributeDescription attribute;
+    attribute.setLocation(location).setBinding(m_vertexBufferInfos.size()).setFormat(format).setOffset(offset);
+    m_attributes.push_back(attribute);
+    m_vertexBufferInfos.push_back({ buffer, offsetInBuffer });
 }

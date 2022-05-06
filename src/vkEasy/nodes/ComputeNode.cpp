@@ -20,8 +20,8 @@ void ComputeNode::update()
         return;
 
     computeBuffers[0]->bindPipeline(vk::PipelineBindPoint::eCompute, **m_pipeline);
-    computeBuffers[0]->bindDescriptorSets(
-        vk::PipelineBindPoint::eCompute, **m_pipelineLayout, 0, m_descriptorSetsToBind, {});
+    computeBuffers[0]->bindDescriptorSets(vk::PipelineBindPoint::eCompute, **m_pipelineLayout, 0,
+        m_descriptorSetsToBind[getGraph()->getImageIndex()], {});
     computeBuffers[0]->dispatch(m_dispatchSize[0], m_dispatchSize[1], m_dispatchSize[2]);
 }
 

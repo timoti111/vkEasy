@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vkEasy/Context.h>
 #include <vkEasy/Device.h>
-#include <vkEasy/nodes/BufferCopyNode.h>
+#include <vkEasy/nodes/MemoryCopyNode.h>
 #include <vkEasy/resources/base/Buffer.h>
 
 using namespace VK_EASY_NAMESPACE;
@@ -22,6 +22,10 @@ void Buffer::addBufferUsageFlag(vk::BufferUsageFlagBits flag)
 VkBuffer Buffer::getVkBuffer()
 {
     return m_buffers[getActualFrameIndex()];
+}
+VkBuffer Buffer::getVkBuffer(size_t index)
+{
+    return m_buffers[m_isPersistent ? 0 : index];
 }
 
 size_t Buffer::getSize()
@@ -54,18 +58,18 @@ void Buffer::setData(const uint8_t* data, size_t size, size_t offset)
 void Buffer::transferFromStagingBuffer(StagingBuffer* stagingBuffer, size_t offset)
 {
     if (!m_bufferCopyNode)
-        m_bufferCopyNode = &getGraph()->createNode<BufferCopyNode>();
-    m_bufferCopyNode->setSrcResource(*stagingBuffer);
-    m_bufferCopyNode->setDstResource(*this, offset);
+        m_bufferCopyNode = &getGraph()->createNode<MemoryCopyNode>();
+    m_bufferCopyNode->setSrcBuffer(*stagingBuffer);
+    m_bufferCopyNode->setDstBuffer(*this, offset);
     m_bufferCopyNode->execute();
 }
 
 void Buffer::transferToStagingBuffer(StagingBuffer* stagingBuffer, size_t offset)
 {
     if (!m_bufferCopyNode)
-        m_bufferCopyNode = &getGraph()->createNode<BufferCopyNode>();
-    m_bufferCopyNode->setSrcResource(*this, stagingBuffer->getSize(), offset);
-    m_bufferCopyNode->setDstResource(*stagingBuffer);
+        m_bufferCopyNode = &getGraph()->createNode<MemoryCopyNode>();
+    m_bufferCopyNode->setSrcBuffer(*this, stagingBuffer->getSize(), offset);
+    m_bufferCopyNode->setDstBuffer(*stagingBuffer);
     m_bufferCopyNode->execute();
 };
 

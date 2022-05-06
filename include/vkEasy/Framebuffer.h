@@ -3,7 +3,8 @@
 #include <vkEasy/Utils.h>
 #include <vkEasy/WSI.h>
 #include <vkEasy/global.h>
-#include <vkEasy/resources/AttachmentImage.h>
+#include <vkEasy/resources/ColorAttachment.h>
+#include <vkEasy/resources/DepthStencilBuffer.h>
 
 namespace VK_EASY_NAMESPACE {
 class GraphicsNode;
@@ -15,8 +16,8 @@ public:
     Framebuffer(Framebuffer const&) = delete;
     void operator=(Framebuffer const&) = delete;
 
-    AttachmentImage* createAttachment();
-    AttachmentImage* getDepthStencilAttachment();
+    ColorAttachment* createColorAttachment();
+    DepthStencilBuffer* getDepthStencilAttachment();
 
     void setWindow(WSI& window);
     void setResolution(size_t width, size_t height);
@@ -26,11 +27,11 @@ private:
     void build();
     void begin(vk::raii::CommandBuffer* commandBuffer);
     void end(vk::raii::CommandBuffer* commandBuffer);
-    AttachmentImage* initializeAttachment(AttachmentImage* attachment);
+    Image* initializeAttachment(Image* attachment);
 
     std::vector<vk::AttachmentDescription> m_attachmentDescriptions;
-    std::vector<AttachmentImage*> m_attachments;
-    AttachmentImage* m_depthStencilAttachment = nullptr;
+    std::vector<Image*> m_attachments;
+    DepthStencilBuffer* m_depthStencilAttachment = nullptr;
 
     vk::RenderPassBeginInfo m_renderPassBeginInfo;
 
@@ -47,5 +48,7 @@ private:
     size_t m_runtimeReferences = 0;
     vk::Rect2D m_renderArea;
     bool m_needsRecreation = false;
+
+    std::vector<vk::ClearValue> m_clearValues;
 };
 } // namespace VK_EASY_NAMESPACE

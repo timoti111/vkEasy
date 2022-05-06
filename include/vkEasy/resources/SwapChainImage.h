@@ -1,12 +1,12 @@
 #pragma once
 #include <vkEasy/global.h>
-#include <vkEasy/resources/AttachmentImage.h>
+#include <vkEasy/resources/ColorAttachment.h>
 
 namespace VK_EASY_NAMESPACE {
 class Graph;
 class WSI;
 
-class SwapChainImage : public AttachmentImage {
+class SwapChainImage : public ColorAttachment {
     friend class Graph;
     friend class WSI;
     friend class Framebuffer;

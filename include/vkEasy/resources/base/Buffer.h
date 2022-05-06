@@ -4,7 +4,7 @@
 #include <vkEasy/resources/base/Resource.h>
 
 namespace VK_EASY_NAMESPACE {
-class BufferCopyNode;
+class MemoryCopyNode;
 class Buffer : public Resource {
 public:
     Buffer(Buffer const&) = delete;
@@ -13,6 +13,7 @@ public:
 
     void addBufferUsageFlag(vk::BufferUsageFlagBits flag);
     VkBuffer getVkBuffer();
+    VkBuffer getVkBuffer(size_t index);
     size_t getSize();
     void setSize(size_t size);
     template <typename DataType> void setData(const std::vector<DataType>& data)
@@ -34,6 +35,6 @@ protected:
     vk::BufferCreateInfo m_bufferCreateInfo;
     std::map<size_t, VkBuffer> m_buffers;
 
-    BufferCopyNode* m_bufferCopyNode = nullptr;
+    MemoryCopyNode* m_bufferCopyNode = nullptr;
 };
 }
